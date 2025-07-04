@@ -105,6 +105,26 @@ function Sidebar({ onDocumentSelect, selectedDocument, setToast }) {
     }
   };
 
+  // Add this function to handle upload to backend
+  const handleUploadToBackend = async (doc) => {
+    const formData = new FormData();
+    formData.append('file', doc.file, doc.name);
+    try {
+      const response = await fetch('http://localhost:8000/ingest/upload-property-csv/', {
+        method: 'POST',
+        body: formData,
+      });
+      if (response.ok) {
+        setToast && setToast({ message: `Uploaded ${doc.name} to backend!`, type: 'success' });
+      } else {
+        const error = await response.text();
+        setToast && setToast({ message: `Failed to upload: ${error}`, type: 'error' });
+      }
+    } catch (error) {
+      setToast && setToast({ message: `Error uploading: ${error.message}`, type: 'error' });
+    }
+  };
+
   return (
     <aside className="h-full flex flex-col gap-4 px-2 py-4 bg-gray-50 border-r border-gray-200 overflow-y-auto" style={{ minWidth: 120, maxWidth: 400 }}>
       <div className="flex flex-col items-center w-full mb-2">
@@ -207,6 +227,14 @@ function Sidebar({ onDocumentSelect, selectedDocument, setToast }) {
               title="Remove"
             >
               <XMarkIcon className="h-5 w-5" />
+            </button>
+            {/* Upload to Backend Button */}
+            <button
+              onClick={() => handleUploadToBackend(doc)}
+              className="ml-2 p-1 text-gray-400 hover:text-green-600"
+              title="Upload to Backend"
+            >
+              <ArrowUpTrayIcon className="h-5 w-5" />
             </button>
           </div>
         ))}
