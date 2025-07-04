@@ -367,8 +367,8 @@ function PreviewPanel({ selectedDocument }) {
 
   return (
     <section ref={panelRef} className="w-full h-full py-4">
-      <div className="h-full flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="p-4 border-b border-gray-200 text-lg font-semibold text-gray-700 text-center">Document Preview</div>
+      <div className="h-full flex flex-col rounded-2xl border border-gray-300 bg-white/60 shadow-2xl backdrop-blur-md backdrop-saturate-150">
+        <div className="p-4 border-b border-gray-200 text-lg font-semibold text-gray-700 text-center bg-gradient-to-r from-blue-100/60 to-purple-100/60 rounded-t-2xl">Document Preview</div>
         <div className="flex-1 overflow-hidden p-4 flex flex-col items-center justify-center">
           {renderPreview()}
         </div>

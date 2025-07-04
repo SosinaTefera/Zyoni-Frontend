@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import ChatPanel from './components/ChatPanel';
 import PreviewPanel from './components/PreviewPanel';
 import Toast from './components/Toast';
+import logo from './assets/logo.png';
 
 function App() {
   const [selectedDocument, setSelectedDocument] = useState(null);

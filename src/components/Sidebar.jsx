@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { DocumentIcon, XMarkIcon, ArrowUpTrayIcon, PencilIcon, PhotoIcon, CodeBracketIcon, TableCellsIcon } from "@heroicons/react/24/outline";
+import logo from '../assets/Untitled design (2).png';
 
 function getFileTypeIcon(doc) {
   if (doc.type.startsWith('image/')) return <PhotoIcon className="h-5 w-5 text-blue-400 mr-2" />;
@@ -126,7 +127,11 @@ function Sidebar({ onDocumentSelect, selectedDocument, setToast }) {
   };
 
   return (
-    <aside className="h-full flex flex-col gap-4 px-2 py-4 bg-gray-50 border-r border-gray-200 overflow-y-auto" style={{ minWidth: 120, maxWidth: 400 }}>
+    <aside className="h-full flex flex-col gap-4 px-2 py-4 bg-gradient-to-b from-blue-100/60 via-purple-100/60 to-white/60 border-r border-gray-200 shadow-xl rounded-r-2xl backdrop-blur-md backdrop-saturate-150 overflow-y-auto" style={{ minWidth: 120, maxWidth: 400 }}>
+      <div className="flex flex-row items-center justify-center h-24 w-56 mx-auto my-0 rounded-2xl bg-white/60 shadow-lg border-2 border-blue-100 overflow-hidden">
+        <img src={logo} alt="Company Logo" className="h-full w-1/2 object-contain" />
+        <span className="text-2xl font-bold bg-gradient-to-r from-[#0F65C1] to-[#02B3D6] text-transparent bg-clip-text ml-1">ZYONIA</span>
+      </div>
       <div className="flex flex-col items-center w-full mb-2">
         <div className="w-full max-w-xs mb-3 flex items-center gap-2">
           {editingGuest ? (
@@ -137,16 +142,17 @@ function Sidebar({ onDocumentSelect, selectedDocument, setToast }) {
               onBlur={handleGuestNameBlur}
               onKeyDown={handleGuestNameKeyDown}
               autoFocus
-              className="flex-1 px-3 py-2 rounded border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base shadow font-semibold text-blue-700 bg-blue-50"
+              placeholder="User"
+              className="flex-1 px-4 py-2 rounded-lg border-2 border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base shadow-lg font-bold text-blue-700 bg-white placeholder-blue-300 transition-all duration-200"
             />
           ) : (
             <button
               type="button"
               onClick={handleGuestNameClick}
-              className="flex-1 text-left px-3 py-2 rounded border border-transparent hover:border-blue-300 bg-blue-50 text-base font-semibold text-blue-700 shadow cursor-pointer"
+              className="flex-1 text-left px-4 py-2 rounded-lg border-2 border-blue-400 bg-white text-base font-bold text-blue-700 shadow-lg cursor-pointer hover:bg-blue-50 hover:border-blue-500 transition-all duration-200"
               title="Click to edit your name"
             >
-              {guestName}
+              {guestName || 'User'}
             </button>
           )}
           <svg

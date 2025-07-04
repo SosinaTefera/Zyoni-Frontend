@@ -4,7 +4,7 @@ import { ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/outline';
 
 function ChatPanel({ selectedDocument }) {
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hello! I can help you analyze your documents. What would you like to know?' }
+    { role: 'assistant', content: 'Hello,\nWelcome to Airz real state assistant, let me know what you are looking for. También puedo hablar en español.' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -82,41 +82,41 @@ function ChatPanel({ selectedDocument }) {
   };
 
   return (
-    <main className="w-full flex flex-col h-full bg-gray-50 py-4">
-      <div className="flex-1 overflow-auto rounded-xl border border-gray-200 bg-white p-6 mb-4 shadow-sm">
-        <div className="space-y-6">
+    <main className="w-full flex flex-col h-full bg-gradient-to-br from-blue-100/40 via-purple-100/40 to-white/60 py-4">
+      <div className="flex-1 overflow-auto rounded-2xl border border-gray-200 bg-white/60 p-8 mb-4 shadow-2xl backdrop-blur-md backdrop-saturate-150">
+        <div className="space-y-8">
           {messages.map((message, index) => (
             <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {message.role === 'assistant' && (
                 <div className="flex flex-col items-center mr-2">
-                  <ChatBubbleLeftEllipsisIcon className="h-8 w-8 text-blue-400" />
-                  <span className="text-xs font-semibold text-gray-500 mt-1">IA</span>
+                  <ChatBubbleLeftEllipsisIcon className="h-8 w-8 text-purple-400 drop-shadow" />
+                  <span className="text-xs font-semibold text-purple-500 mt-1">AI</span>
                 </div>
               )}
               <div
-                className={`max-w-[70%] px-4 py-3 rounded-2xl text-base shadow-sm ${
+                className={`max-w-[70%] px-5 py-4 rounded-2xl text-base shadow-xl transition-all duration-300 ${
                   message.role === 'user'
-                    ? 'bg-gray-100 text-gray-800 rounded-br-none'
-                    : 'bg-blue-100 text-blue-900 rounded-bl-none'
-                }`}
+                    ? 'bg-blue-200/80 text-blue-900 rounded-br-none'
+                    : 'bg-purple-200/80 text-purple-900 rounded-bl-none'
+                } animate-fade-in`}
               >
                 {message.content}
               </div>
               {message.role === 'user' && (
                 <div className="flex flex-col items-center ml-2">
-                  <UserCircleIcon className="h-8 w-8 text-gray-400" />
-                  <span className="text-xs font-semibold text-gray-500 mt-1">User</span>
+                  <UserCircleIcon className="h-8 w-8 text-blue-400 drop-shadow" />
+                  <span className="text-xs font-semibold text-blue-500 mt-1">You</span>
                 </div>
               )}
             </div>
           ))}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-blue-100 rounded-2xl px-4 py-3 text-blue-900 shadow-sm">
+              <div className="bg-purple-100/80 rounded-2xl px-5 py-4 text-purple-900 shadow-xl animate-pulse">
                 <div className="flex space-x-2">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce delay-100" />
-                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce delay-200" />
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-100" />
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-200" />
                 </div>
               </div>
             </div>
@@ -125,20 +125,20 @@ function ChatPanel({ selectedDocument }) {
         </div>
       </div>
       <form onSubmit={handleSubmit} className="mt-auto">
-        <div className="flex items-end gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
+        <div className="flex items-end gap-2 bg-white/70 border border-gray-200 rounded-2xl px-6 py-4 shadow-xl backdrop-blur-md transition-all duration-300 focus-within:ring-2 focus-within:ring-purple-300">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask a question about the document..."
-            className="flex-1 resize-none border-0 focus:ring-0 bg-transparent text-base min-h-[40px] max-h-32"
+            className="flex-1 resize-none border-0 focus:ring-0 bg-transparent text-base min-h-[40px] max-h-32 transition-all duration-300 focus:bg-white/90 focus:shadow-lg"
             rows={1}
             disabled={isLoading}
           />
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="bg-blue-500 text-white rounded-lg px-4 py-2 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl px-6 py-2 hover:scale-105 hover:from-blue-600 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg transition-all duration-300 focus:ring-2 focus:ring-purple-300"
           >
             <span className="font-semibold">Send</span>
             <PaperAirplaneIcon className="h-5 w-5" />
