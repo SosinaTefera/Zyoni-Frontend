@@ -61,7 +61,7 @@ function App() {
   const previewAtMin = previewWidth <= PREVIEW_MIN_WIDTH + 2;
 
   return (
-    <div className="flex h-screen bg-white select-none w-full" style={{ minWidth: 0 }}>
+    <div className="flex h-screen bg-white w-full" style={{ minWidth: 0 }}>
       <Toast message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, message: '' })} />
       {/* Sidebar */}
       <div style={{ width: sidebarWidth, minWidth: SIDEBAR_MIN_WIDTH, maxWidth: SIDEBAR_MAX_WIDTH, transition: 'width 0.1s' }}>
