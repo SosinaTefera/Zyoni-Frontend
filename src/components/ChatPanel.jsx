@@ -12,6 +12,7 @@ function ChatPanel({ selectedDocument }) {
   const [sessionId, setSessionId] = useState(null);
   const messagesEndRef = useRef(null);
   const [guestName, setGuestName] = useState("");
+  const [retryInfo, setRetryInfo] = useState(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -26,18 +27,19 @@ function ChatPanel({ selectedDocument }) {
     setGuestName(storedName);
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+  const handleSubmit = async (e, retrying = false) => {
+    if (e) e.preventDefault();
+    if ((!input.trim() && !retrying) || isLoading) return;
 
-    const userMessage = input.trim();
-    setInput('');
+    const userMessage = retrying ? retryInfo?.userMessage : input.trim();
+    if (!userMessage) return;
+    if (!retrying) setInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
+    setRetryInfo(null);
 
     try {
       let currentSessionId = sessionId;
-      // If no session, create one
       if (!currentSessionId) {
         const sessionRes = await fetch('http://localhost:8000/sessions', {
           method: 'POST',
@@ -49,7 +51,6 @@ function ChatPanel({ selectedDocument }) {
         currentSessionId = sessionData.session_id;
         setSessionId(currentSessionId);
       }
-      // Now send chat message
       const chatRes = await fetch('http://localhost:8000/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -63,13 +64,38 @@ function ChatPanel({ selectedDocument }) {
       const chatData = await chatRes.json();
       setMessages(prev => [...prev, { role: 'assistant', content: chatData.response }]);
     } catch (error) {
-      console.error('Error getting AI response:', error);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.'
-      }]);
+      let errorMessage = 'Sorry, I encountered an error. Please try again.';
+      if (
+        error.message && (
+          error.message.includes('Failed to fetch') ||
+          error.message.includes('NetworkError') ||
+          error.message.includes('Network Error')
+        )
+      ) {
+        errorMessage = 'App disconnected, please restart.';
+      } else if (error.response) {
+        try {
+          const data = await error.response.json();
+          if (data && data.detail && typeof data.detail === 'string' && data.detail.length < 200) {
+            errorMessage = data.detail;
+          }
+        } catch (e) {}
+      }
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: errorMessage, failed: true }
+      ]);
+      setRetryInfo({ userMessage });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRetry = () => {
+    if (retryInfo && retryInfo.userMessage) {
+      // Remove the last assistant error message before retrying
+      setMessages(prev => prev.filter((msg, idx, arr) => !(idx === arr.length - 1 && msg.role === 'assistant' && msg.failed)));
+      handleSubmit(null, true);
     }
   };
 
@@ -106,6 +132,15 @@ function ChatPanel({ selectedDocument }) {
                   {message.role === 'assistant'
                     ? <ReactMarkdown>{message.content}</ReactMarkdown>
                     : message.content}
+                  {/* Retry button for failed assistant message */}
+                  {message.role === 'assistant' && message.failed && index === messages.length - 1 && (
+                    <button
+                      onClick={handleRetry}
+                      className="mt-3 ml-2 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs font-semibold border border-red-300 transition"
+                    >
+                      Retry
+                    </button>
+                  )}
                 </div>
                 {message.role === 'user' && (
                   <div className="flex flex-col items-center ml-2">
