@@ -12,6 +12,7 @@ function ChatPanel({ selectedDocument }) {
   const [sessionId, setSessionId] = useState(null);
   const messagesEndRef = useRef(null);
   const [guestName, setGuestName] = useState("");
+  const [autoPlay, setAutoPlay] = useState(true);
 
   // --- Audio recording ---
   const [isRecording, setIsRecording] = useState(false);
@@ -79,11 +80,6 @@ function ChatPanel({ selectedDocument }) {
     try {
       const chatData = await sendChatRequest({ text: userMessage });
       setMessages(prev => [...prev, { role: 'assistant', content: chatData.response, ...(chatData.audio_base64 ? { audio: chatData.audio_base64 } : {}) }]);
-
-      if (chatData.audio_base64) {
-        const audio = new Audio(`data:audio/wav;base64,${chatData.audio_base64}`);
-        audio.play().catch(console.error);
-      }
     } catch (error) {
       console.error('Error getting AI response:', error);
       setMessages(prev => [...prev, {
@@ -182,12 +178,6 @@ function ChatPanel({ selectedDocument }) {
       const assistantMsg = { role: 'assistant', content: chatData.response };
       if (chatData.audio_base64) assistantMsg.audio = chatData.audio_base64;
       setMessages(prev => [...prev, assistantMsg]);
-
-      // Auto-play audio if available
-      if (chatData.audio_base64) {
-        const audio = new Audio(`data:audio/wav;base64,${chatData.audio_base64}`);
-        audio.play().catch(console.error);
-      }
     } catch (err) {
       console.error('Error sending audio message:', err);
       setMessages(prev => [...prev, { role: 'assistant', content: 'Lo siento, ocurrió un error con el audio.' }]);
@@ -198,6 +188,17 @@ function ChatPanel({ selectedDocument }) {
 
   return (
     <main className="w-full flex flex-col h-full bg-gradient-to-br from-blue-100/40 via-purple-100/40 to-white/60 py-4">
+      <div className="flex items-center mb-2 ml-2">
+        <label className="flex items-center gap-2 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            checked={autoPlay}
+            onChange={() => setAutoPlay(!autoPlay)}
+            className="form-checkbox h-4 w-4 text-purple-600"/>
+          <span>Auto-play voice replies</span>
+        </label>
+      </div>
+
       <div className="flex-1 overflow-auto rounded-2xl border border-gray-200 bg-white/60 p-8 mb-4 shadow-2xl backdrop-blur-md backdrop-saturate-150">
         <div className="space-y-8">
           {messages.map((message, index) => (
@@ -224,6 +225,7 @@ function ChatPanel({ selectedDocument }) {
                             src={`data:audio/wav;base64,${message.audio}`}
                             controls
                             className="mt-2 w-full"
+                            autoPlay={autoPlay}
                           />
                         )}
                       </>
