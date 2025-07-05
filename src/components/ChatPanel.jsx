@@ -12,6 +12,10 @@ function ChatPanel({ selectedDocument }) {
   const [sessionId, setSessionId] = useState(null);
   const messagesEndRef = useRef(null);
   const [guestName, setGuestName] = useState("");
+  const [autoPlay, setAutoPlay] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const [retryInfo, setRetryInfo] = useState(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -26,9 +30,25 @@ function ChatPanel({ selectedDocument }) {
     setGuestName(storedName);
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+  useEffect(() => {
+    // Auto-play newly arrived assistant voice messages
+    if (!autoPlay) return;
+    if (!messages.length) return;
+
+    const lastMsg = messages[messages.length - 1];
+    if (!lastMsg || !lastMsg.audio) return;
+
+    // Find the most recently rendered <audio> element and attempt to play it.
+    const audioElements = document.querySelectorAll('audio');
+    if (audioElements.length === 0) return;
+    const latestAudio = audioElements[audioElements.length - 1];
+    // Attempt playback; ignore errors (e.g. user gesture policies)
+    latestAudio.play().catch(() => {});
+  }, [messages, autoPlay]);
+
+  const handleSubmit = async (e, retrying = false) => {
+    if (e) e.preventDefault();
+    if ((!retrying && !input.trim()) || isLoading) return;
 
     const userMessage = retrying ? retryInfo?.userMessage : input.trim();
     if (!userMessage) return;
@@ -38,32 +58,12 @@ function ChatPanel({ selectedDocument }) {
     setRetryInfo(null);
 
     try {
-      let currentSessionId = sessionId;
-      // If no session, create one
-      if (!currentSessionId) {
-        const sessionRes = await fetch('http://localhost:8000/sessions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: guestName })
-        });
-        if (!sessionRes.ok) throw new Error('Failed to create session');
-        const sessionData = await sessionRes.json();
-        currentSessionId = sessionData.session_id;
-        setSessionId(currentSessionId);
-      }
-      // Now send chat message
-      const chatRes = await fetch('http://localhost:8000/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: guestName,
-          session_id: currentSessionId,
-          message: userMessage
-        })
-      });
-      if (!chatRes.ok) throw new Error('Failed to get chat response');
-      const chatData = await chatRes.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: chatData.response }]);
+      const chatData = await sendChatRequest({ message: userMessage });
+
+      const assistantMsg = { role: 'assistant', content: chatData.response };
+      if (chatData.audio_base64) assistantMsg.audio = chatData.audio_base64;
+
+      setMessages(prev => [...prev, assistantMsg]);
     } catch (error) {
       let errorMessage = 'Sorry, I encountered an error. Please try again.';
       if (
@@ -110,6 +110,41 @@ function ChatPanel({ selectedDocument }) {
   };
 
   // ---------------- Voice recording / STT -----------------
+  // Helper to create or reuse a conversation session on the backend
+  const ensureSession = async () => {
+    if (sessionId) return sessionId;
+
+    const res = await fetch('http://localhost:8000/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: guestName }),
+    });
+    if (!res.ok) throw new Error('Failed to create session');
+    const data = await res.json();
+    setSessionId(data.session_id);
+    return data.session_id;
+  };
+
+  // Unified helper to send either text or audio payloads to the /chat endpoint
+  const sendChatRequest = async ({ message = null, audioBase64 = null, mimeType = null }) => {
+    const currentSessionId = await ensureSession();
+
+    const res = await fetch('http://localhost:8000/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: guestName,
+        session_id: currentSessionId,
+        message,
+        audio_base64: audioBase64,
+        audio_mime_type: mimeType,
+      }),
+    });
+
+    if (!res.ok) throw new Error('Failed to get chat response');
+    return await res.json();
+  };
+
   const getSupportedMimeType = () => {
     const preferredTypes = [
       'audio/ogg;codecs=opus',
@@ -211,52 +246,50 @@ function ChatPanel({ selectedDocument }) {
       <div className="flex-1 overflow-auto rounded-2xl border border-gray-200 bg-white/60 p-8 mb-4 shadow-2xl backdrop-blur-md backdrop-saturate-150">
         <div className="space-y-8">
           {messages.map((message, index) => (
-            <>
-              <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {message.role === 'assistant' && (
-                  <div className="flex flex-col items-center mr-2">
-                    <ChatBubbleLeftEllipsisIcon className="h-8 w-8 text-purple-400 drop-shadow" />
-                    <span className="text-xs font-semibold text-purple-500 mt-1">AI</span>
-                  </div>
-                )}
-                <div
-                  className={`max-w-[70%] px-5 py-4 rounded-2xl text-base shadow-xl transition-all duration-300 ${
-                    message.role === 'user'
-                      ? 'bg-blue-200/80 text-blue-900 rounded-br-none'
-                      : 'bg-purple-200/80 text-purple-900 rounded-bl-none'
-                  } animate-fade-in`}
-                >
-                  {message.role === 'assistant'
-                    ? <>
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
-                        {message.audio && (
-                          <audio
-                            src={`data:audio/wav;base64,${message.audio}`}
-                            controls
-                            className="mt-2 w-full"
-                            autoPlay={autoPlay}
-                          />
-                        )}
-                      </>
-                    : message.content}
-                  {/* Retry button for failed assistant message */}
-                  {message.role === 'assistant' && message.failed && index === messages.length - 1 && (
-                    <button
-                      onClick={handleRetry}
-                      className="mt-3 ml-2 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs font-semibold border border-red-300 transition"
-                    >
-                      Retry
-                    </button>
-                  )}
+            <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              {message.role === 'assistant' && (
+                <div className="flex flex-col items-center mr-2">
+                  <ChatBubbleLeftEllipsisIcon className="h-8 w-8 text-purple-400 drop-shadow" />
+                  <span className="text-xs font-semibold text-purple-500 mt-1">AI</span>
                 </div>
-                {message.role === 'user' && (
-                  <div className="flex flex-col items-center ml-2">
-                    <UserCircleIcon className="h-8 w-8 text-blue-400 drop-shadow" />
-                    <span className="text-xs font-semibold text-blue-500 mt-1">You</span>
-                  </div>
+              )}
+              <div
+                className={`max-w-[70%] px-5 py-4 rounded-2xl text-base shadow-xl transition-all duration-300 ${
+                  message.role === 'user'
+                    ? 'bg-blue-200/80 text-blue-900 rounded-br-none'
+                    : 'bg-purple-200/80 text-purple-900 rounded-bl-none'
+                } animate-fade-in`}
+              >
+                {message.role === 'assistant'
+                  ? <>
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                      {message.audio && (
+                        <audio
+                          src={`data:audio/wav;base64,${message.audio}`}
+                          controls
+                          className="mt-2 w-full"
+                          autoPlay={autoPlay}
+                        />
+                      )}
+                    </>
+                  : message.content}
+                {/* Retry button for failed assistant message */}
+                {message.role === 'assistant' && message.failed && index === messages.length - 1 && (
+                  <button
+                    onClick={handleRetry}
+                    className="mt-3 ml-2 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs font-semibold border border-red-300 transition"
+                  >
+                    Retry
+                  </button>
                 )}
               </div>
-            </>
+              {message.role === 'user' && (
+                <div className="flex flex-col items-center ml-2">
+                  <UserCircleIcon className="h-8 w-8 text-blue-400 drop-shadow" />
+                  <span className="text-xs font-semibold text-blue-500 mt-1">You</span>
+                </div>
+              )}
+            </div>
           ))}
           {isLoading && (
             <div className="flex flex-col items-start">
