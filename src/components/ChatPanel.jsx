@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { PaperAirplaneIcon, UserCircleIcon } from '@heroicons/react/24/solid';
-import { ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon, UserCircleIcon, MicrophoneIcon } from '@heroicons/react/24/solid';
+import { ChatBubbleLeftEllipsisIcon, StopIcon } from '@heroicons/react/24/outline';
 import ReactMarkdown from 'react-markdown';
 
 function ChatPanel({ selectedDocument }) {
@@ -12,6 +12,10 @@ function ChatPanel({ selectedDocument }) {
   const [sessionId, setSessionId] = useState(null);
   const messagesEndRef = useRef(null);
   const [guestName, setGuestName] = useState("");
+
+  // --- Audio recording ---
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -26,6 +30,43 @@ function ChatPanel({ selectedDocument }) {
     setGuestName(storedName);
   }, []);
 
+
+  // Ensure we have a valid session ‒ creates one on first use
+  const ensureSession = async () => {
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
+      const res = await fetch('http://localhost:8000/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: guestName })
+      });
+      if (!res.ok) throw new Error('Failed to create session');
+      const data = await res.json();
+      currentSessionId = data.session_id;
+      setSessionId(currentSessionId);
+    }
+    return currentSessionId;
+  };
+
+  // Core chat request – accepts either plain text or base-64 audio
+  const sendChatRequest = async ({ text, audioBase64, mimeType }) => {
+    const currentSessionId = await ensureSession();
+    const payload = {
+      user_id: guestName,
+      session_id: currentSessionId,
+      ...(text ? { message: text } : {}),
+      ...(audioBase64 ? { audio_base64: audioBase64, audio_mime_type: mimeType || 'audio/webm' } : {})
+    };
+
+    const res = await fetch('http://localhost:8000/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Failed to get chat response');
+    return res.json();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -36,32 +77,13 @@ function ChatPanel({ selectedDocument }) {
     setIsLoading(true);
 
     try {
-      let currentSessionId = sessionId;
-      // If no session, create one
-      if (!currentSessionId) {
-        const sessionRes = await fetch('http://localhost:8000/sessions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: guestName })
-        });
-        if (!sessionRes.ok) throw new Error('Failed to create session');
-        const sessionData = await sessionRes.json();
-        currentSessionId = sessionData.session_id;
-        setSessionId(currentSessionId);
+      const chatData = await sendChatRequest({ text: userMessage });
+      setMessages(prev => [...prev, { role: 'assistant', content: chatData.response, ...(chatData.audio_base64 ? { audio: chatData.audio_base64 } : {}) }]);
+
+      if (chatData.audio_base64) {
+        const audio = new Audio(`data:audio/wav;base64,${chatData.audio_base64}`);
+        audio.play().catch(console.error);
       }
-      // Now send chat message
-      const chatRes = await fetch('http://localhost:8000/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: guestName,
-          session_id: currentSessionId,
-          message: userMessage
-        })
-      });
-      if (!chatRes.ok) throw new Error('Failed to get chat response');
-      const chatData = await chatRes.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: chatData.response }]);
     } catch (error) {
       console.error('Error getting AI response:', error);
       setMessages(prev => [...prev, {
@@ -82,13 +104,104 @@ function ChatPanel({ selectedDocument }) {
     }
   };
 
+  // ---------------- Voice recording / STT -----------------
+  const getSupportedMimeType = () => {
+    const preferredTypes = [
+      'audio/ogg;codecs=opus',
+      'audio/ogg',
+      'audio/webm;codecs=opus',
+      'audio/webm',
+    ];
+    for (const type of preferredTypes) {
+      if (MediaRecorder.isTypeSupported(type)) {
+        return type;
+      }
+    }
+    return '';
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = getSupportedMimeType();
+      if (!mimeType) throw new Error('No supported audio format found for MediaRecorder');
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const chunks = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        sendAudioMessage(blob);
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Failed to start recording:', err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop());
+      setIsRecording(false);
+    }
+  };
+
+  const handleRecordClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+
+  const sendAudioMessage = async (audioBlob) => {
+    setMessages(prev => [...prev, { role: 'user', content: '[Voice message]' }]);
+    setIsLoading(true);
+
+    try {
+      const audioBase64 = await blobToBase64(audioBlob);
+      // Need to know which type was used; reuse getSupportedMimeType()
+      const mimeType = getSupportedMimeType() || 'audio/webm';
+      const chatData = await sendChatRequest({ audioBase64, mimeType });
+
+      // Push assistant message with optional audio
+      const assistantMsg = { role: 'assistant', content: chatData.response };
+      if (chatData.audio_base64) assistantMsg.audio = chatData.audio_base64;
+      setMessages(prev => [...prev, assistantMsg]);
+
+      // Auto-play audio if available
+      if (chatData.audio_base64) {
+        const audio = new Audio(`data:audio/wav;base64,${chatData.audio_base64}`);
+        audio.play().catch(console.error);
+      }
+    } catch (err) {
+      console.error('Error sending audio message:', err);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Lo siento, ocurrió un error con el audio.' }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <main className="w-full flex flex-col h-full bg-gradient-to-br from-blue-100/40 via-purple-100/40 to-white/60 py-4">
       <div className="flex-1 overflow-auto rounded-2xl border border-gray-200 bg-white/60 p-8 mb-4 shadow-2xl backdrop-blur-md backdrop-saturate-150">
         <div className="space-y-8">
           {messages.map((message, index) => (
             <>
-              {console.log('MSG', message)}
               <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {message.role === 'assistant' && (
                   <div className="flex flex-col items-center mr-2">
@@ -104,7 +217,16 @@ function ChatPanel({ selectedDocument }) {
                   } animate-fade-in`}
                 >
                   {message.role === 'assistant'
-                    ? <ReactMarkdown>{message.content}</ReactMarkdown>
+                    ? <>
+                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                        {message.audio && (
+                          <audio
+                            src={`data:audio/wav;base64,${message.audio}`}
+                            controls
+                            className="mt-2 w-full"
+                          />
+                        )}
+                      </>
                     : message.content}
                 </div>
                 {message.role === 'user' && (
@@ -142,6 +264,14 @@ function ChatPanel({ selectedDocument }) {
             rows={1}
             disabled={isLoading}
           />
+          <button
+            type="button"
+            onClick={handleRecordClick}
+            disabled={isLoading}
+            className={`rounded-xl p-2 transition-all duration-300 shadow-lg focus:ring-2 focus:ring-purple-300 ${isRecording ? 'bg-red-500 text-white' : 'bg-blue-500 text-white hover:scale-110'} mr-2`}
+          >
+            {isRecording ? <StopIcon className="h-6 w-6" /> : <MicrophoneIcon className="h-6 w-6" />}
+          </button>
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
