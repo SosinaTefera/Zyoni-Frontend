@@ -12,6 +12,9 @@ function ChatPanel({ selectedDocument }) {
   const [sessionId, setSessionId] = useState(null);
   const messagesEndRef = useRef(null);
   const [guestName, setGuestName] = useState("");
+  const [autoPlay, setAutoPlay] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [retryInfo, setRetryInfo] = useState(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -26,7 +29,7 @@ function ChatPanel({ selectedDocument }) {
     setGuestName(storedName);
   }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, retrying = false) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
