@@ -209,18 +209,37 @@ function ChatPanel({ selectedDocument }) {
   });
 
   const sendAudioMessage = async (audioBlob) => {
-    setMessages(prev => [...prev, { role: 'user', content: '[Voice message]' }]);
     setIsLoading(true);
 
     try {
       const audioBase64 = await blobToBase64(audioBlob);
-      // Need to know which type was used; reuse getSupportedMimeType()
       const mimeType = getSupportedMimeType() || 'audio/webm';
-      const chatData = await sendChatRequest({ audioBase64, mimeType });
 
-      // Push assistant message with optional audio
+      // 1) Transcribe quickly
+      let transcript = '[Voice message]';
+      try {
+        const transRes = await fetch('http://localhost:8000/transcribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ audio_base64: audioBase64, audio_mime_type: mimeType }),
+        });
+        if (transRes.ok) {
+          const data = await transRes.json();
+          if (data && data.transcript) transcript = data.transcript;
+        }
+      } catch (e) {
+        console.warn('Transcription failed, falling back to placeholder', e);
+      }
+
+      // Show transcript immediately
+      setMessages(prev => [...prev, { role: 'user', content: transcript }]);
+
+      // 2) Send to chat for Assistant response
+      const chatData = await sendChatRequest({ message: transcript });
+
       const assistantMsg = { role: 'assistant', content: chatData.response };
       if (chatData.audio_base64) assistantMsg.audio = chatData.audio_base64;
+
       setMessages(prev => [...prev, assistantMsg]);
     } catch (err) {
       console.error('Error sending audio message:', err);
