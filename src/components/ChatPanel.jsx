@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { PaperAirplaneIcon, UserCircleIcon } from '@heroicons/react/24/solid';
-import { ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon, UserCircleIcon, MicrophoneIcon } from '@heroicons/react/24/solid';
+import { ChatBubbleLeftEllipsisIcon, StopIcon } from '@heroicons/react/24/outline';
 import ReactMarkdown from 'react-markdown';
 
 function ChatPanel({ selectedDocument }) {
@@ -12,7 +12,6 @@ function ChatPanel({ selectedDocument }) {
   const [sessionId, setSessionId] = useState(null);
   const messagesEndRef = useRef(null);
   const [guestName, setGuestName] = useState("");
-  const [retryInfo, setRetryInfo] = useState(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -27,9 +26,9 @@ function ChatPanel({ selectedDocument }) {
     setGuestName(storedName);
   }, []);
 
-  const handleSubmit = async (e, retrying = false) => {
-    if (e) e.preventDefault();
-    if ((!input.trim() && !retrying) || isLoading) return;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
 
     const userMessage = retrying ? retryInfo?.userMessage : input.trim();
     if (!userMessage) return;
@@ -40,6 +39,7 @@ function ChatPanel({ selectedDocument }) {
 
     try {
       let currentSessionId = sessionId;
+      // If no session, create one
       if (!currentSessionId) {
         const sessionRes = await fetch('http://localhost:8000/sessions', {
           method: 'POST',
@@ -51,6 +51,7 @@ function ChatPanel({ selectedDocument }) {
         currentSessionId = sessionData.session_id;
         setSessionId(currentSessionId);
       }
+      // Now send chat message
       const chatRes = await fetch('http://localhost:8000/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -108,13 +109,109 @@ function ChatPanel({ selectedDocument }) {
     }
   };
 
+  // ---------------- Voice recording / STT -----------------
+  const getSupportedMimeType = () => {
+    const preferredTypes = [
+      'audio/ogg;codecs=opus',
+      'audio/ogg',
+      'audio/webm;codecs=opus',
+      'audio/webm',
+    ];
+    for (const type of preferredTypes) {
+      if (MediaRecorder.isTypeSupported(type)) {
+        return type;
+      }
+    }
+    return '';
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = getSupportedMimeType();
+      if (!mimeType) throw new Error('No supported audio format found for MediaRecorder');
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const chunks = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        sendAudioMessage(blob);
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Failed to start recording:', err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop());
+      setIsRecording(false);
+    }
+  };
+
+  const handleRecordClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+
+  const sendAudioMessage = async (audioBlob) => {
+    setMessages(prev => [...prev, { role: 'user', content: '[Voice message]' }]);
+    setIsLoading(true);
+
+    try {
+      const audioBase64 = await blobToBase64(audioBlob);
+      // Need to know which type was used; reuse getSupportedMimeType()
+      const mimeType = getSupportedMimeType() || 'audio/webm';
+      const chatData = await sendChatRequest({ audioBase64, mimeType });
+
+      // Push assistant message with optional audio
+      const assistantMsg = { role: 'assistant', content: chatData.response };
+      if (chatData.audio_base64) assistantMsg.audio = chatData.audio_base64;
+      setMessages(prev => [...prev, assistantMsg]);
+    } catch (err) {
+      console.error('Error sending audio message:', err);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Lo siento, ocurrió un error con el audio.' }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <main className="w-full flex flex-col h-full bg-gradient-to-br from-blue-100/40 via-purple-100/40 to-white/60 py-4">
+      <div className="flex items-center mb-2 ml-2">
+        <label className="flex items-center gap-2 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            checked={autoPlay}
+            onChange={() => setAutoPlay(!autoPlay)}
+            className="form-checkbox h-4 w-4 text-purple-600"/>
+          <span>Auto-play voice replies</span>
+        </label>
+      </div>
+
       <div className="flex-1 overflow-auto rounded-2xl border border-gray-200 bg-white/60 p-8 mb-4 shadow-2xl backdrop-blur-md backdrop-saturate-150">
         <div className="space-y-8">
           {messages.map((message, index) => (
             <>
-              {console.log('MSG', message)}
               <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {message.role === 'assistant' && (
                   <div className="flex flex-col items-center mr-2">
@@ -130,7 +227,17 @@ function ChatPanel({ selectedDocument }) {
                   } animate-fade-in`}
                 >
                   {message.role === 'assistant'
-                    ? <ReactMarkdown>{message.content}</ReactMarkdown>
+                    ? <>
+                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                        {message.audio && (
+                          <audio
+                            src={`data:audio/wav;base64,${message.audio}`}
+                            controls
+                            className="mt-2 w-full"
+                            autoPlay={autoPlay}
+                          />
+                        )}
+                      </>
                     : message.content}
                   {/* Retry button for failed assistant message */}
                   {message.role === 'assistant' && message.failed && index === messages.length - 1 && (
@@ -177,6 +284,14 @@ function ChatPanel({ selectedDocument }) {
             rows={1}
             disabled={isLoading}
           />
+          <button
+            type="button"
+            onClick={handleRecordClick}
+            disabled={isLoading}
+            className={`rounded-xl p-2 transition-all duration-300 shadow-lg focus:ring-2 focus:ring-purple-300 ${isRecording ? 'bg-red-500 text-white' : 'bg-blue-500 text-white hover:scale-110'} mr-2`}
+          >
+            {isRecording ? <StopIcon className="h-6 w-6" /> : <MicrophoneIcon className="h-6 w-6" />}
+          </button>
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
