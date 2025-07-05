@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { PaperAirplaneIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import { ChatBubbleLeftEllipsisIcon } from '@heroicons/react/24/outline';
+import ReactMarkdown from 'react-markdown';
 
 function ChatPanel({ selectedDocument }) {
   const [messages, setMessages] = useState([
@@ -86,32 +87,37 @@ function ChatPanel({ selectedDocument }) {
       <div className="flex-1 overflow-auto rounded-2xl border border-gray-200 bg-white/60 p-8 mb-4 shadow-2xl backdrop-blur-md backdrop-saturate-150">
         <div className="space-y-8">
           {messages.map((message, index) => (
-            <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {message.role === 'assistant' && (
-                <div className="flex flex-col items-center mr-2">
-                  <ChatBubbleLeftEllipsisIcon className="h-8 w-8 text-purple-400 drop-shadow" />
-                  <span className="text-xs font-semibold text-purple-500 mt-1">AI</span>
+            <>
+              {console.log('MSG', message)}
+              <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {message.role === 'assistant' && (
+                  <div className="flex flex-col items-center mr-2">
+                    <ChatBubbleLeftEllipsisIcon className="h-8 w-8 text-purple-400 drop-shadow" />
+                    <span className="text-xs font-semibold text-purple-500 mt-1">AI</span>
+                  </div>
+                )}
+                <div
+                  className={`max-w-[70%] px-5 py-4 rounded-2xl text-base shadow-xl transition-all duration-300 ${
+                    message.role === 'user'
+                      ? 'bg-blue-200/80 text-blue-900 rounded-br-none'
+                      : 'bg-purple-200/80 text-purple-900 rounded-bl-none'
+                  } animate-fade-in`}
+                >
+                  {message.role === 'assistant'
+                    ? <ReactMarkdown>{message.content}</ReactMarkdown>
+                    : message.content}
                 </div>
-              )}
-              <div
-                className={`max-w-[70%] px-5 py-4 rounded-2xl text-base shadow-xl transition-all duration-300 ${
-                  message.role === 'user'
-                    ? 'bg-blue-200/80 text-blue-900 rounded-br-none'
-                    : 'bg-purple-200/80 text-purple-900 rounded-bl-none'
-                } animate-fade-in`}
-              >
-                {message.content}
+                {message.role === 'user' && (
+                  <div className="flex flex-col items-center ml-2">
+                    <UserCircleIcon className="h-8 w-8 text-blue-400 drop-shadow" />
+                    <span className="text-xs font-semibold text-blue-500 mt-1">You</span>
+                  </div>
+                )}
               </div>
-              {message.role === 'user' && (
-                <div className="flex flex-col items-center ml-2">
-                  <UserCircleIcon className="h-8 w-8 text-blue-400 drop-shadow" />
-                  <span className="text-xs font-semibold text-blue-500 mt-1">You</span>
-                </div>
-              )}
-            </div>
+            </>
           ))}
           {isLoading && (
-            <div className="flex justify-start">
+            <div className="flex flex-col items-start">
               <div className="bg-purple-100/80 rounded-2xl px-5 py-4 text-purple-900 shadow-xl animate-pulse">
                 <div className="flex space-x-2">
                   <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
@@ -119,6 +125,7 @@ function ChatPanel({ selectedDocument }) {
                   <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-200" />
                 </div>
               </div>
+              <span className="text-xs text-purple-400 mt-2 ml-2">AI is typing…</span>
             </div>
           )}
           <div ref={messagesEndRef} />
