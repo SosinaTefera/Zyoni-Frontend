@@ -1,42 +1,78 @@
-import { useState, useRef, useEffect } from 'react';
-import { PaperAirplaneIcon, UserCircleIcon, MicrophoneIcon } from '@heroicons/react/24/solid';
-import { ChatBubbleLeftEllipsisIcon, StopIcon } from '@heroicons/react/24/outline';
-import ReactMarkdown from 'react-markdown';
-import '../markdown.css';
+import { useState, useRef, useEffect } from "react";
+import {
+  PaperAirplaneIcon,
+  UserCircleIcon,
+  MicrophoneIcon,
+} from "@heroicons/react/24/solid";
+import {
+  ChatBubbleLeftEllipsisIcon,
+  StopIcon,
+} from "@heroicons/react/24/outline";
+import ReactMarkdown from "react-markdown";
+import { useAdminAuth } from "../contexts/AdminAuthContext";
+import AdminChatInterface from "./AdminChatInterface";
+import AdminToggle from "./admin/AdminToggle";
+import "../markdown.css";
 
 // Helper function to extract property cards from Markdown
 function extractPropertyCards(markdown) {
   // Simple regex to find property blocks (e.g., starts with 'Nombre:' or '**Nombre:**')
   const propertyBlocks = markdown.split(/\n(?=\*\*Nombre:|Nombre:)/g);
   const cards = [];
-  propertyBlocks.forEach(block => {
+  propertyBlocks.forEach((block) => {
     if (/Nombre:|\*\*Nombre:\*\*/.test(block)) {
       // Extract fields
-      const name = block.match(/Nombre:?\s*([\w\d]+)/i)?.[1] || '';
-      const type = block.match(/Tipo:?\s*([\w\s]+)/i)?.[1] || '';
-      const price = block.match(/Precio:?\s*([\w\d€().\/ ]+)/i)?.[1] || '';
-      const rooms = block.match(/Habitaciones:?\s*(\d+)/i)?.[1] || '';
-      const baths = block.match(/Baños:?\s*(\d+)/i)?.[1] || '';
-      const furniture = block.match(/Mobiliario:?\s*([\w\s]+)/i)?.[1] || '';
-      const climate = block.match(/Climatización:?\s*([\w\s]+)/i)?.[1] || '';
-      const location = block.match(/Ubicación:?\s*([\w\s,]+)/i)?.[1] || '';
+      const name = block.match(/Nombre:?\s*([\w\d]+)/i)?.[1] || "";
+      const type = block.match(/Tipo:?\s*([\w\s]+)/i)?.[1] || "";
+      const price = block.match(/Precio:?\s*([\w\d€().\/ ]+)/i)?.[1] || "";
+      const rooms = block.match(/Habitaciones:?\s*(\d+)/i)?.[1] || "";
+      const baths = block.match(/Baños:?\s*(\d+)/i)?.[1] || "";
+      const furniture = block.match(/Mobiliario:?\s*([\w\s]+)/i)?.[1] || "";
+      const climate = block.match(/Climatización:?\s*([\w\s]+)/i)?.[1] || "";
+      const location = block.match(/Ubicación:?\s*([\w\s,]+)/i)?.[1] || "";
       // Features: look for lines after 'Características adicionales:'
       let features = [];
-      const featuresMatch = block.match(/Características adicionales:[\s\S]*?(- .+)+/);
+      const featuresMatch = block.match(
+        /Características adicionales:[\s\S]*?(- .+)+/
+      );
       if (featuresMatch) {
-        features = featuresMatch[0].split('\n').filter(l => l.trim().startsWith('-')).map(l => l.replace('- ', '').trim());
+        features = featuresMatch[0]
+          .split("\n")
+          .filter((l) => l.trim().startsWith("-"))
+          .map((l) => l.replace("- ", "").trim());
       }
-      cards.push({ name, type, price, rooms, baths, furniture, climate, location, features });
+      cards.push({
+        name,
+        type,
+        price,
+        rooms,
+        baths,
+        furniture,
+        climate,
+        location,
+        features,
+      });
     }
   });
   return cards;
 }
 
 function ChatPanel({ selectedDocument }) {
+  const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
+
+  // If admin is authenticated, show admin interface
+  if (isAdminAuthenticated) {
+    return <AdminChatInterface />;
+  }
+
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hello,\nWelcome to Airz real state assistant, let me know what you are looking for. También puedo hablar en español.' }
+    {
+      role: "assistant",
+      content:
+        "Hello,\nWelcome to Airz real state assistant, let me know what you are looking for. También puedo hablar en español.",
+    },
   ]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const messagesEndRef = useRef(null);
@@ -68,7 +104,7 @@ function ChatPanel({ selectedDocument }) {
     if (!lastMsg || !lastMsg.audio) return;
 
     // Find the most recently rendered <audio> element and attempt to play it.
-    const audioElements = document.querySelectorAll('audio');
+    const audioElements = document.querySelectorAll("audio");
     if (audioElements.length === 0) return;
     const latestAudio = audioElements[audioElements.length - 1];
     // Attempt playback; ignore errors (e.g. user gesture policies)
@@ -81,39 +117,43 @@ function ChatPanel({ selectedDocument }) {
 
     const userMessage = retrying ? retryInfo?.userMessage : input.trim();
     if (!userMessage) return;
-    if (!retrying) setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    if (!retrying) setInput("");
+    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setIsLoading(true);
     setRetryInfo(null);
 
     try {
       const chatData = await sendChatRequest({ message: userMessage });
 
-      const assistantMsg = { role: 'assistant', content: chatData.response };
+      const assistantMsg = { role: "assistant", content: chatData.response };
       if (chatData.audio_base64) assistantMsg.audio = chatData.audio_base64;
 
-      setMessages(prev => [...prev, assistantMsg]);
+      setMessages((prev) => [...prev, assistantMsg]);
     } catch (error) {
-      let errorMessage = 'Sorry, I encountered an error. Please try again.';
+      let errorMessage = "Sorry, I encountered an error. Please try again.";
       if (
-        error.message && (
-          error.message.includes('Failed to fetch') ||
-          error.message.includes('NetworkError') ||
-          error.message.includes('Network Error')
-        )
+        error.message &&
+        (error.message.includes("Failed to fetch") ||
+          error.message.includes("NetworkError") ||
+          error.message.includes("Network Error"))
       ) {
-        errorMessage = 'App disconnected, please restart.';
+        errorMessage = "App disconnected, please restart.";
       } else if (error.response) {
         try {
           const data = await error.response.json();
-          if (data && data.detail && typeof data.detail === 'string' && data.detail.length < 200) {
+          if (
+            data &&
+            data.detail &&
+            typeof data.detail === "string" &&
+            data.detail.length < 200
+          ) {
             errorMessage = data.detail;
           }
         } catch (e) {}
       }
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: errorMessage, failed: true }
+        { role: "assistant", content: errorMessage, failed: true },
       ]);
       setRetryInfo({ userMessage });
     } finally {
@@ -124,13 +164,18 @@ function ChatPanel({ selectedDocument }) {
   const handleRetry = () => {
     if (retryInfo && retryInfo.userMessage) {
       // Remove the last assistant error message before retrying
-      setMessages(prev => prev.filter((msg, idx, arr) => !(idx === arr.length - 1 && msg.role === 'assistant' && msg.failed)));
+      setMessages((prev) =>
+        prev.filter(
+          (msg, idx, arr) =>
+            !(idx === arr.length - 1 && msg.role === "assistant" && msg.failed)
+        )
+      );
       handleSubmit(null, true);
     }
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (!isLoading && input.trim()) {
         handleSubmit(e);
@@ -143,24 +188,28 @@ function ChatPanel({ selectedDocument }) {
   const ensureSession = async () => {
     if (sessionId) return sessionId;
 
-    const res = await fetch('http://localhost:8000/sessions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("http://localhost:8000/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ user_id: guestName }),
     });
-    if (!res.ok) throw new Error('Failed to create session');
+    if (!res.ok) throw new Error("Failed to create session");
     const data = await res.json();
     setSessionId(data.session_id);
     return data.session_id;
   };
 
   // Unified helper to send either text or audio payloads to the /chat endpoint
-  const sendChatRequest = async ({ message = null, audioBase64 = null, mimeType = null }) => {
+  const sendChatRequest = async ({
+    message = null,
+    audioBase64 = null,
+    mimeType = null,
+  }) => {
     const currentSessionId = await ensureSession();
 
-    const res = await fetch('http://localhost:8000/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("http://localhost:8000/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         user_id: guestName,
         session_id: currentSessionId,
@@ -170,30 +219,31 @@ function ChatPanel({ selectedDocument }) {
       }),
     });
 
-    if (!res.ok) throw new Error('Failed to get chat response');
+    if (!res.ok) throw new Error("Failed to get chat response");
     return await res.json();
   };
 
   const getSupportedMimeType = () => {
     const preferredTypes = [
-      'audio/ogg;codecs=opus',
-      'audio/ogg',
-      'audio/webm;codecs=opus',
-      'audio/webm',
+      "audio/ogg;codecs=opus",
+      "audio/ogg",
+      "audio/webm;codecs=opus",
+      "audio/webm",
     ];
     for (const type of preferredTypes) {
       if (MediaRecorder.isTypeSupported(type)) {
         return type;
       }
     }
-    return '';
+    return "";
   };
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = getSupportedMimeType();
-      if (!mimeType) throw new Error('No supported audio format found for MediaRecorder');
+      if (!mimeType)
+        throw new Error("No supported audio format found for MediaRecorder");
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
       const chunks = [];
 
@@ -210,7 +260,7 @@ function ChatPanel({ selectedDocument }) {
       mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
     } catch (err) {
-      console.error('Failed to start recording:', err);
+      console.error("Failed to start recording:", err);
     }
   };
 
@@ -230,63 +280,79 @@ function ChatPanel({ selectedDocument }) {
     }
   };
 
-  const blobToBase64 = (blob) => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+  const blobToBase64 = (blob) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
 
   const sendAudioMessage = async (audioBlob) => {
     setIsLoading(true);
 
     try {
       const audioBase64 = await blobToBase64(audioBlob);
-      const mimeType = getSupportedMimeType() || 'audio/webm';
+      const mimeType = getSupportedMimeType() || "audio/webm";
 
       // 1) Transcribe quickly
-      let transcript = '[Voice message]';
+      let transcript = "[Voice message]";
       try {
-        const transRes = await fetch('http://localhost:8000/transcribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ audio_base64: audioBase64, audio_mime_type: mimeType }),
+        const transRes = await fetch("http://localhost:8000/transcribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            audio_base64: audioBase64,
+            audio_mime_type: mimeType,
+          }),
         });
         if (transRes.ok) {
           const data = await transRes.json();
           if (data && data.transcript) transcript = data.transcript;
         }
       } catch (e) {
-        console.warn('Transcription failed, falling back to placeholder', e);
+        console.warn("Transcription failed, falling back to placeholder", e);
       }
 
       // Show transcript immediately
-      setMessages(prev => [...prev, { role: 'user', content: transcript }]);
+      setMessages((prev) => [...prev, { role: "user", content: transcript }]);
 
       // 2) Send to chat for Assistant response
       const chatData = await sendChatRequest({ message: transcript });
 
-      const assistantMsg = { role: 'assistant', content: chatData.response };
+      const assistantMsg = { role: "assistant", content: chatData.response };
       if (chatData.audio_base64) assistantMsg.audio = chatData.audio_base64;
 
-      setMessages(prev => [...prev, assistantMsg]);
+      setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
-      console.error('Error sending audio message:', err);
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Lo siento, ocurrió un error con el audio.' }]);
+      console.error("Error sending audio message:", err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Lo siento, ocurrió un error con el audio.",
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <main className="w-full flex flex-col h-full bg-gradient-to-br from-blue-100/40 via-purple-100/40 to-white/60 py-4">
-      <div className="flex items-center mb-2 ml-2">
+    <main className="w-full flex flex-col h-full bg-gradient-to-br from-blue-100/40 via-purple-100/40 to-white/60 py-4 relative">
+      {/* Admin Toggle - positioned in top-right corner */}
+      <div className="absolute top-4 right-4 z-50">
+        <AdminToggle />
+      </div>
+
+      <div className="flex items-center mb-2 ml-2 mr-32">
         <label className="flex items-center gap-2 text-sm text-gray-600">
           <input
             type="checkbox"
             checked={autoPlay}
             onChange={() => setAutoPlay(!autoPlay)}
-            className="form-checkbox h-4 w-4 text-purple-600"/>
+            className="form-checkbox h-4 w-4 text-purple-600"
+          />
           <span>Auto-play voice replies</span>
         </label>
       </div>
@@ -294,21 +360,28 @@ function ChatPanel({ selectedDocument }) {
       <div className="flex-1 overflow-auto rounded-2xl border border-gray-200 bg-white/60 p-8 mb-4 shadow-2xl backdrop-blur-md backdrop-saturate-150">
         <div className="space-y-8">
           {messages.map((message, index) => (
-            <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {message.role === 'assistant' && (
+            <div
+              key={index}
+              className={`flex ${
+                message.role === "user" ? "justify-end" : "justify-start"
+              }`}
+            >
+              {message.role === "assistant" && (
                 <div className="flex flex-col items-center mr-2">
                   <ChatBubbleLeftEllipsisIcon className="h-8 w-8 text-purple-400 drop-shadow" />
-                  <span className="text-xs font-semibold text-purple-500 mt-1">AI</span>
+                  <span className="text-xs font-semibold text-purple-500 mt-1">
+                    AI
+                  </span>
                 </div>
               )}
               <div
                 className={`max-w-[70%] px-5 py-4 rounded-2xl text-base shadow-xl transition-all duration-300 ${
-                  message.role === 'user'
-                    ? 'bg-blue-200/80 text-blue-900 rounded-br-none'
-                    : 'bg-purple-200/80 text-purple-900 rounded-bl-none'
+                  message.role === "user"
+                    ? "bg-blue-200/80 text-blue-900 rounded-br-none"
+                    : "bg-purple-200/80 text-purple-900 rounded-bl-none"
                 } animate-fade-in`}
               >
-                {message.role === 'assistant'
+                {message.role === "assistant"
                   ? (() => {
                       // Try to detect property cards in the message
                       const cards = extractPropertyCards(message.content);
@@ -317,19 +390,34 @@ function ChatPanel({ selectedDocument }) {
                           <div className="property-cards-container">
                             {cards.map((card, idx) => (
                               <div className="property-card" key={idx}>
-                                <div className="property-card-title">{card.name}</div>
-                                <div className="property-card-type">{card.type}</div>
-                                <div className="property-card-price">{card.price}</div>
+                                <div className="property-card-title">
+                                  {card.name}
+                                </div>
+                                <div className="property-card-type">
+                                  {card.type}
+                                </div>
+                                <div className="property-card-price">
+                                  {card.price}
+                                </div>
                                 <div className="property-card-details">
                                   <span>🛏️ {card.rooms} habitaciones</span>
                                   <span>🛁 {card.baths} baños</span>
-                                  <span>{card.furniture && `Mobiliario: ${card.furniture}`}</span>
-                                  <span>{card.climate && `Clima: ${card.climate}`}</span>
-                                  <span>{card.location && `📍 ${card.location}`}</span>
+                                  <span>
+                                    {card.furniture &&
+                                      `Mobiliario: ${card.furniture}`}
+                                  </span>
+                                  <span>
+                                    {card.climate && `Clima: ${card.climate}`}
+                                  </span>
+                                  <span>
+                                    {card.location && `📍 ${card.location}`}
+                                  </span>
                                 </div>
                                 {card.features && card.features.length > 0 && (
                                   <ul className="property-card-features">
-                                    {card.features.map((f, i) => <li key={i}>{f}</li>)}
+                                    {card.features.map((f, i) => (
+                                      <li key={i}>{f}</li>
+                                    ))}
                                   </ul>
                                 )}
                               </div>
@@ -346,19 +434,23 @@ function ChatPanel({ selectedDocument }) {
                     })()
                   : message.content}
                 {/* Retry button for failed assistant message */}
-                {message.role === 'assistant' && message.failed && index === messages.length - 1 && (
-                  <button
-                    onClick={handleRetry}
-                    className="mt-3 ml-2 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs font-semibold border border-red-300 transition"
-                  >
-                    Retry
-                  </button>
-                )}
+                {message.role === "assistant" &&
+                  message.failed &&
+                  index === messages.length - 1 && (
+                    <button
+                      onClick={handleRetry}
+                      className="mt-3 ml-2 px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs font-semibold border border-red-300 transition"
+                    >
+                      Retry
+                    </button>
+                  )}
               </div>
-              {message.role === 'user' && (
+              {message.role === "user" && (
                 <div className="flex flex-col items-center ml-2">
                   <UserCircleIcon className="h-8 w-8 text-blue-400 drop-shadow" />
-                  <span className="text-xs font-semibold text-blue-500 mt-1">You</span>
+                  <span className="text-xs font-semibold text-blue-500 mt-1">
+                    You
+                  </span>
                 </div>
               )}
             </div>
@@ -372,7 +464,9 @@ function ChatPanel({ selectedDocument }) {
                   <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-200" />
                 </div>
               </div>
-              <span className="text-xs text-purple-400 mt-2 ml-2">AI is typing…</span>
+              <span className="text-xs text-purple-400 mt-2 ml-2">
+                AI is typing…
+              </span>
             </div>
           )}
           <div ref={messagesEndRef} />
@@ -393,9 +487,17 @@ function ChatPanel({ selectedDocument }) {
             type="button"
             onClick={handleRecordClick}
             disabled={isLoading}
-            className={`rounded-xl p-2 transition-all duration-300 shadow-lg focus:ring-2 focus:ring-purple-300 ${isRecording ? 'bg-red-500 text-white' : 'bg-blue-500 text-white hover:scale-110'} mr-2`}
+            className={`rounded-xl p-2 transition-all duration-300 shadow-lg focus:ring-2 focus:ring-purple-300 ${
+              isRecording
+                ? "bg-red-500 text-white"
+                : "bg-blue-500 text-white hover:scale-110"
+            } mr-2`}
           >
-            {isRecording ? <StopIcon className="h-6 w-6" /> : <MicrophoneIcon className="h-6 w-6" />}
+            {isRecording ? (
+              <StopIcon className="h-6 w-6" />
+            ) : (
+              <MicrophoneIcon className="h-6 w-6" />
+            )}
           </button>
           <button
             type="submit"
