@@ -2,6 +2,35 @@ import { useState, useRef, useEffect } from 'react';
 import { PaperAirplaneIcon, UserCircleIcon, MicrophoneIcon } from '@heroicons/react/24/solid';
 import { ChatBubbleLeftEllipsisIcon, StopIcon } from '@heroicons/react/24/outline';
 import ReactMarkdown from 'react-markdown';
+import '../markdown.css';
+
+// Helper function to extract property cards from Markdown
+function extractPropertyCards(markdown) {
+  // Simple regex to find property blocks (e.g., starts with 'Nombre:' or '**Nombre:**')
+  const propertyBlocks = markdown.split(/\n(?=\*\*Nombre:|Nombre:)/g);
+  const cards = [];
+  propertyBlocks.forEach(block => {
+    if (/Nombre:|\*\*Nombre:\*\*/.test(block)) {
+      // Extract fields
+      const name = block.match(/Nombre:?\s*([\w\d]+)/i)?.[1] || '';
+      const type = block.match(/Tipo:?\s*([\w\s]+)/i)?.[1] || '';
+      const price = block.match(/Precio:?\s*([\w\d€().\/ ]+)/i)?.[1] || '';
+      const rooms = block.match(/Habitaciones:?\s*(\d+)/i)?.[1] || '';
+      const baths = block.match(/Baños:?\s*(\d+)/i)?.[1] || '';
+      const furniture = block.match(/Mobiliario:?\s*([\w\s]+)/i)?.[1] || '';
+      const climate = block.match(/Climatización:?\s*([\w\s]+)/i)?.[1] || '';
+      const location = block.match(/Ubicación:?\s*([\w\s,]+)/i)?.[1] || '';
+      // Features: look for lines after 'Características adicionales:'
+      let features = [];
+      const featuresMatch = block.match(/Características adicionales:[\s\S]*?(- .+)+/);
+      if (featuresMatch) {
+        features = featuresMatch[0].split('\n').filter(l => l.trim().startsWith('-')).map(l => l.replace('- ', '').trim());
+      }
+      cards.push({ name, type, price, rooms, baths, furniture, climate, location, features });
+    }
+  });
+  return cards;
+}
 
 function ChatPanel({ selectedDocument }) {
   const [messages, setMessages] = useState([
@@ -280,17 +309,41 @@ function ChatPanel({ selectedDocument }) {
                 } animate-fade-in`}
               >
                 {message.role === 'assistant'
-                  ? <>
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
-                      {message.audio && (
-                        <audio
-                          src={`data:audio/wav;base64,${message.audio}`}
-                          controls
-                          className="mt-2 w-full"
-                          autoPlay={autoPlay}
-                        />
-                      )}
-                    </>
+                  ? (() => {
+                      // Try to detect property cards in the message
+                      const cards = extractPropertyCards(message.content);
+                      if (cards.length > 0) {
+                        return (
+                          <div className="property-cards-container">
+                            {cards.map((card, idx) => (
+                              <div className="property-card" key={idx}>
+                                <div className="property-card-title">{card.name}</div>
+                                <div className="property-card-type">{card.type}</div>
+                                <div className="property-card-price">{card.price}</div>
+                                <div className="property-card-details">
+                                  <span>🛏️ {card.rooms} habitaciones</span>
+                                  <span>🛁 {card.baths} baños</span>
+                                  <span>{card.furniture && `Mobiliario: ${card.furniture}`}</span>
+                                  <span>{card.climate && `Clima: ${card.climate}`}</span>
+                                  <span>{card.location && `📍 ${card.location}`}</span>
+                                </div>
+                                {card.features && card.features.length > 0 && (
+                                  <ul className="property-card-features">
+                                    {card.features.map((f, i) => <li key={i}>{f}</li>)}
+                                  </ul>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                      // Fallback: render as Markdown
+                      return (
+                        <div className="markdown-body">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
+                      );
+                    })()
                   : message.content}
                 {/* Retry button for failed assistant message */}
                 {message.role === 'assistant' && message.failed && index === messages.length - 1 && (
