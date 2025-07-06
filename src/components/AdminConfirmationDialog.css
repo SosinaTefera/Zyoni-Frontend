@@ -1,0 +1,393 @@
+/* AdminConfirmationDialog.css */
+
+.admin-confirmation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.admin-confirmation-dialog {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideIn 0.3s ease-out;
+  position: relative;
+}
+
+/* Risk Level Styling */
+.admin-confirmation-dialog.high-risk {
+  border: 3px solid #dc2626;
+  box-shadow: 0 20px 40px rgba(220, 38, 38, 0.3);
+}
+
+.admin-confirmation-dialog.medium-risk {
+  border: 2px solid #f59e0b;
+  box-shadow: 0 20px 40px rgba(245, 158, 11, 0.2);
+}
+
+.admin-confirmation-dialog.low-risk {
+  border: 1px solid #6b7280;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Header */
+.admin-confirmation-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-confirmation-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.admin-confirmation-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  color: #1f2937;
+}
+
+.high-risk .admin-confirmation-title {
+  color: #dc2626;
+}
+
+.medium-risk .admin-confirmation-title {
+  color: #f59e0b;
+}
+
+/* Content */
+.admin-confirmation-content {
+  padding: 20px 24px;
+}
+
+.admin-confirmation-description {
+  margin-bottom: 20px;
+}
+
+.admin-confirmation-description p {
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.admin-confirmation-description p.warning-text {
+  color: #dc2626;
+  font-weight: 600;
+  background-color: #fef2f2;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border-left: 4px solid #dc2626;
+}
+
+/* Details */
+.admin-confirmation-details {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.admin-confirmation-detail-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.admin-confirmation-detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #6b7280;
+  min-width: 80px;
+}
+
+.detail-value {
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  color: #1f2937;
+  font-weight: 500;
+  text-align: right;
+  flex: 1;
+}
+
+.param-item {
+  display: block;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.param-item:not(:last-child) {
+  margin-bottom: 4px;
+}
+
+/* Input Section */
+.admin-confirmation-input-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+}
+
+.confirmation-input-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.confirmation-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #dc2626;
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background-color: white;
+}
+
+.confirmation-input:focus {
+  outline: none;
+  border-color: #b91c1c;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.confirmation-input::placeholder {
+  color: #9ca3af;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Actions */
+.admin-confirmation-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 16px 24px 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.admin-confirmation-cancel {
+  padding: 12px 24px;
+  border: 2px solid #6b7280;
+  background-color: white;
+  color: #6b7280;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-confirmation-cancel:hover:not(:disabled) {
+  border-color: #4b5563;
+  color: #4b5563;
+  background-color: #f9fafb;
+}
+
+.admin-confirmation-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-confirmation-confirm {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-confirmation-confirm.high-risk {
+  background-color: #dc2626;
+  color: white;
+}
+
+.admin-confirmation-confirm.high-risk:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
+.admin-confirmation-confirm.medium-risk {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.admin-confirmation-confirm.medium-risk:hover:not(:disabled) {
+  background-color: #d97706;
+}
+
+.admin-confirmation-confirm.low-risk {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.admin-confirmation-confirm.low-risk:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.admin-confirmation-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirmation-spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Countdown */
+.admin-confirmation-countdown {
+  padding: 16px 24px 0;
+  text-align: center;
+}
+
+.countdown-bar {
+  width: 100%;
+  height: 4px;
+  background-color: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.countdown-progress {
+  height: 100%;
+  background-color: #f59e0b;
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+.high-risk .countdown-progress {
+  background-color: #dc2626;
+}
+
+.countdown-text {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .admin-confirmation-dialog {
+    width: 95%;
+    margin: 20px;
+  }
+
+  .admin-confirmation-header {
+    padding: 20px 20px 12px;
+  }
+
+  .admin-confirmation-content {
+    padding: 16px 20px;
+  }
+
+  .admin-confirmation-actions {
+    padding: 12px 20px 20px;
+    flex-direction: column;
+  }
+
+  .admin-confirmation-cancel,
+  .admin-confirmation-confirm {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .admin-confirmation-title {
+    font-size: 20px;
+  }
+
+  .admin-confirmation-icon {
+    font-size: 28px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .admin-confirmation-dialog {
+    background-color: #1f2937;
+    color: white;
+  }
+
+  .admin-confirmation-header {
+    border-bottom-color: #374151;
+  }
+
+  .admin-confirmation-title {
+    color: white;
+  }
+
+  .admin-confirmation-description p {
+    color: #d1d5db;
+  }
+
+  .admin-confirmation-details {
+    background-color: #374151;
+    border-color: #4b5563;
+  }
+
+  .detail-label {
+    color: #9ca3af;
+  }
+
+  .detail-value {
+    color: #f3f4f6;
+  }
+
+  .admin-confirmation-actions {
+    border-top-color: #374151;
+  }
+}
