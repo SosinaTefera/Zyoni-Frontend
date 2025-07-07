@@ -46,6 +46,12 @@ export const useProgressTracking = (userId = "admin") => {
 
       wsRef.current.onmessage = (event) => {
         try {
+          // Handle non-JSON messages like "pong"
+          if (event.data === "pong") {
+            console.log("[PROGRESS] Received pong heartbeat");
+            return;
+          }
+
           const message = JSON.parse(event.data);
           console.log("[PROGRESS] WebSocket message:", message);
 
@@ -146,6 +152,12 @@ export const useProgressTracking = (userId = "admin") => {
 
             case "admin_connected":
               console.log("[PROGRESS] Admin connected confirmation");
+              break;
+
+            case "dashboard_update":
+              console.log("[PROGRESS] Dashboard update received:", message.data);
+              // Handle dashboard updates - you can add specific logic here
+              // For now, just log them
               break;
 
             default:
