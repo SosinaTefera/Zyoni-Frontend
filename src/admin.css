@@ -2495,6 +2495,12 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(8px);
   transition: all 0.2s ease;
+  color: #374151;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .admin-toggle-wrapper .admin-toggle-button:hover {
@@ -2515,6 +2521,19 @@
   border-color: rgba(16, 185, 129, 0.6);
 }
 
+/* Ensure text elements are visible */
+.admin-toggle-wrapper .admin-toggle-text {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.admin-toggle-wrapper .admin-toggle-user {
+  color: inherit;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
 /* Position dropdown relative to sidebar */
 .admin-toggle-wrapper .admin-dropdown {
   position: absolute;
@@ -2524,4 +2543,29 @@
   margin-top: 8px;
   z-index: 1000;
   min-width: 240px;
+}
+
+/* Modal positioning - center on page, not in sidebar */
+.admin-toggle-wrapper .admin-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.admin-toggle-wrapper .admin-modal {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 400px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
 }
