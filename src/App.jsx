@@ -10,6 +10,7 @@ function App() {
   const [sidebarWidth, setSidebarWidth] = useState(260); // px
   const [previewWidth, setPreviewWidth] = useState(340); // px
   const [toast, setToast] = useState({ message: "", type: "error" });
+  const [autoPlay, setAutoPlay] = useState(true);
   const dragging = useRef(null);
   const mainContentRef = useRef(null);
   const PREVIEW_MIN_WIDTH = 320;
@@ -86,6 +87,8 @@ function App() {
           onDocumentSelect={setSelectedDocument}
           selectedDocument={selectedDocument}
           setToast={setToast}
+          autoPlay={autoPlay}
+          setAutoPlay={setAutoPlay}
         />
       </div>
       {/* Sidebar drag handle */}
@@ -103,7 +106,11 @@ function App() {
       >
         {/* Chat panel fills remaining space */}
         <div style={{ flex: "1 1 0%", minWidth: 0 }}>
-          <ChatPanel selectedDocument={selectedDocument} />
+          <ChatPanel 
+            selectedDocument={selectedDocument} 
+            autoPlay={autoPlay}
+            setAutoPlay={setAutoPlay}
+          />
         </div>
         {/* Preview drag handle, disables pointer events if at min width */}
         <div

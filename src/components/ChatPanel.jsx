@@ -11,7 +11,6 @@ import {
 import ReactMarkdown from "react-markdown";
 import { useAdminAuth } from "../contexts/AdminAuthContext";
 import AdminChatInterface from "./AdminChatInterface";
-import AdminToggle from "./admin/AdminToggle";
 import "../markdown.css";
 
 // Helper function to extract property cards from Markdown
@@ -57,7 +56,7 @@ function extractPropertyCards(markdown) {
   return cards;
 }
 
-function ChatPanel({ selectedDocument }) {
+function ChatPanel({ selectedDocument, autoPlay, setAutoPlay }) {
   const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
 
   // If admin is authenticated, show admin interface
@@ -77,7 +76,6 @@ function ChatPanel({ selectedDocument }) {
   const [sessionId, setSessionId] = useState(null);
   const messagesEndRef = useRef(null);
   const [guestName, setGuestName] = useState("");
-  const [autoPlay, setAutoPlay] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
   const [retryInfo, setRetryInfo] = useState(null);
@@ -340,23 +338,6 @@ function ChatPanel({ selectedDocument }) {
 
   return (
     <main className="w-full flex flex-col h-full bg-gradient-to-br from-blue-100/40 via-purple-100/40 to-white/60 py-4 relative">
-      {/* Admin Toggle - positioned in top-right corner */}
-      <div className="absolute top-4 right-4 z-50">
-        <AdminToggle />
-      </div>
-
-      <div className="flex items-center mb-2 ml-2 mr-32">
-        <label className="flex items-center gap-2 text-sm text-gray-600">
-          <input
-            type="checkbox"
-            checked={autoPlay}
-            onChange={() => setAutoPlay(!autoPlay)}
-            className="form-checkbox h-4 w-4 text-purple-600"
-          />
-          <span>Auto-play voice replies</span>
-        </label>
-      </div>
-
       <div className="flex-1 overflow-auto rounded-2xl border border-gray-200 bg-white/60 p-8 mb-4 shadow-2xl backdrop-blur-md backdrop-saturate-150">
         <div className="space-y-8">
           {messages.map((message, index) => (

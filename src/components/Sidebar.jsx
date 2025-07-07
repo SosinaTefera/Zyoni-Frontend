@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { DocumentIcon, XMarkIcon, ArrowUpTrayIcon, PencilIcon, PhotoIcon, CodeBracketIcon, TableCellsIcon } from "@heroicons/react/24/outline";
 import logo from '../assets/Untitled design (2).png';
+import AdminToggle from './admin/AdminToggle';
 
 function getFileTypeIcon(doc) {
   if (doc.type.startsWith('image/')) return <PhotoIcon className="h-5 w-5 text-blue-400 mr-2" />;
@@ -10,13 +11,12 @@ function getFileTypeIcon(doc) {
   return <DocumentIcon className="h-5 w-5 text-gray-400 mr-2" />;
 }
 
-function Sidebar({ onDocumentSelect, selectedDocument, setToast }) {
+function Sidebar({ onDocumentSelect, selectedDocument, setToast, autoPlay, setAutoPlay }) {
   const [documents, setDocuments] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState("");
-  const [search, setSearch] = useState("");
   const [guestName, setGuestName] = useState("User");
   const [editingGuest, setEditingGuest] = useState(false);
 
@@ -132,6 +132,27 @@ function Sidebar({ onDocumentSelect, selectedDocument, setToast }) {
         <img src={logo} alt="Company Logo" className="h-full w-1/2 object-contain" />
         <span className="text-2xl font-bold bg-gradient-to-r from-[#0F65C1] to-[#02B3D6] text-transparent bg-clip-text ml-1">ZYONIA</span>
       </div>
+      
+      {/* Auto-play voice replies toggle */}
+      <div className="flex justify-center mb-3">
+        <label className="flex items-center gap-2 text-sm text-gray-700 bg-white/60 px-3 py-2 rounded-lg border border-blue-200 shadow-sm hover:bg-white/80 transition-all duration-200">
+          <input
+            type="checkbox"
+            checked={autoPlay}
+            onChange={() => setAutoPlay && setAutoPlay(!autoPlay)}
+            className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-400"
+          />
+          <span className="font-medium">Auto-play voice replies</span>
+        </label>
+      </div>
+      
+      {/* Admin Toggle */}
+      <div className="flex justify-center mb-3">
+        <div className="admin-toggle-wrapper">
+          <AdminToggle />
+        </div>
+      </div>
+      
       <div className="flex flex-col items-center w-full mb-2">
         <div className="w-full max-w-xs mb-3 flex items-center gap-2">
           {editingGuest ? (
@@ -168,13 +189,6 @@ function Sidebar({ onDocumentSelect, selectedDocument, setToast }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.788l-4 1 1-4 14.362-14.3z" />
           </svg>
         </div>
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search documents..."
-          className="w-full max-w-xs mb-2 px-3 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base shadow"
-        />
         <label className="block w-full max-w-xs">
           <input
             type="file"
@@ -195,7 +209,7 @@ function Sidebar({ onDocumentSelect, selectedDocument, setToast }) {
         </label>
       </div>
       <div className="flex-1 flex flex-col gap-2 items-center w-full">
-        {documents.filter(doc => doc.name.toLowerCase().includes(search.toLowerCase())).map((doc, idx) => (
+        {documents.map((doc, idx) => (
           <div
             key={doc.id}
             className={`flex items-center group w-full max-w-xs`}
