@@ -215,12 +215,16 @@ export const useProgressTracking = (userId = "admin") => {
       : null;
   };
 
-  // Auto-connect when hook is used
+  // Auto-connect when hook is used - temporarily disabled to prevent hanging
   useEffect(() => {
-    connect();
+    // Delay connection to prevent app hanging on load
+    const timer = setTimeout(() => {
+      connect();
+    }, 2000);
 
     // Cleanup on unmount
     return () => {
+      clearTimeout(timer);
       disconnect();
     };
   }, [userId]);

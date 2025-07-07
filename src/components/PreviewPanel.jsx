@@ -7,7 +7,11 @@ import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
 import { useTable } from 'react-table';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Use a more reliable PDF.js worker configuration
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url
+).toString();
 
 function getLanguage(filename, type) {
   if (type && type.includes('csv')) return 'csv';
