@@ -11,6 +11,8 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import BatchDeletionModal from "./BatchDeletionModal";
+import { useAdminAuth } from "../contexts/AdminAuthContext";
+import "./BatchFilter.css";
 
 const BatchFilter = forwardRef(
   (
@@ -19,9 +21,11 @@ const BatchFilter = forwardRef(
       selectedBatches = [],
       isAdminMode = false,
       onBatchDelete,
+      refreshHandler,
     },
     ref
   ) => {
+    const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
     const [availableBatches, setAvailableBatches] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -47,7 +51,7 @@ const BatchFilter = forwardRef(
         const response = await fetch("http://localhost:8000/api/sources");
 
         if (!response.ok) {
-          throw new Error("Failed to fetch batch sources");
+          throw new Error("Failed to fetch batches");
         }
 
         const batches = await response.json();
@@ -62,7 +66,7 @@ const BatchFilter = forwardRef(
         }
       } catch (err) {
         console.error("Error fetching batches:", err);
-        setError(err.message);
+        setError("Failed to load batches");
       } finally {
         if (isRefresh) {
           setRefreshing(false);
@@ -76,6 +80,13 @@ const BatchFilter = forwardRef(
     useImperativeHandle(ref, () => ({
       refreshBatches: () => fetchAvailableBatches(true),
     }));
+
+    // Set up refresh handler for external triggers (like upload completion)
+    useEffect(() => {
+      if (refreshHandler) {
+        refreshHandler.current = () => fetchAvailableBatches(true);
+      }
+    }, [refreshHandler]);
 
     const handleBatchToggle = (batchName) => {
       let newSelectedBatches;
@@ -104,18 +115,15 @@ const BatchFilter = forwardRef(
       }
     };
 
-    const handleDeleteBatch = (batchName) => {
+    const handleDeleteClick = (batchName, event) => {
+      event.stopPropagation(); // Prevent checkbox toggle
       setBatchToDelete(batchName);
       setShowDeleteModal(true);
     };
 
-    const handleDeleteConfirm = async (deleteInfo) => {
-      setDeleting(true);
+    const handleDeleteConfirm = async () => {
+      // The deletion is handled by the modal, so we just need to refresh and update state
       try {
-        if (onBatchDelete) {
-          await onBatchDelete(deleteInfo);
-        }
-
         // Refresh the batch list after deletion
         await fetchAvailableBatches(true);
 
@@ -128,9 +136,7 @@ const BatchFilter = forwardRef(
         setShowDeleteModal(false);
         setBatchToDelete(null);
       } catch (error) {
-        console.error("Error deleting batch:", error);
-      } finally {
-        setDeleting(false);
+        console.error("Error refreshing after deletion:", error);
       }
     };
 
@@ -142,13 +148,8 @@ const BatchFilter = forwardRef(
     if (loading) {
       return (
         <div className="batch-filter-container">
-          <div className="batch-filter-header">
-            <h3>Data Sources</h3>
-          </div>
-          <div className="batch-filter-loading">
-            <div className="loading-spinner"></div>
-            <span>Loading sources...</span>
-          </div>
+          <h4 className="batch-filter-title">Batch Filter</h4>
+          <div className="batch-filter-loading">Loading batches...</div>
         </div>
       );
     }
@@ -156,111 +157,67 @@ const BatchFilter = forwardRef(
     if (error) {
       return (
         <div className="batch-filter-container">
-          <div className="batch-filter-header">
-            <h3>Data Sources</h3>
-          </div>
-          <div className="batch-filter-error">
-            <span>❌ {error}</span>
-            <button onClick={fetchAvailableBatches} className="retry-button">
-              <ArrowPathIcon className="h-4 w-4" />
-              Retry
-            </button>
-          </div>
+          <h4 className="batch-filter-title">Batch Filter</h4>
+          <div className="batch-filter-error">{error}</div>
+          <button
+            onClick={fetchAvailableBatches}
+            className="batch-filter-retry"
+          >
+            Retry
+          </button>
         </div>
       );
     }
 
     return (
-      <div className="batch-filter-container">
-        <div className="batch-filter-header">
-          <h3>Data Sources</h3>
-          <div className="flex items-center gap-2">
-            {refreshing && (
-              <div
-                className="loading-spinner"
-                style={{ width: "14px", height: "14px" }}
-              ></div>
-            )}
-            <span className="batch-count">
-              {selectedBatches.length} of {availableBatches.length} selected
-            </span>
-          </div>
-        </div>
-
-        <div className="batch-filter-controls">
-          <button
-            onClick={handleSelectAll}
-            className={`select-all-button ${allSelected ? "selected" : ""}`}
-          >
-            {allSelected ? (
-              <>
-                <XMarkIcon className="h-4 w-4" />
-                Deselect All
-              </>
-            ) : (
-              <>
-                <CheckIcon className="h-4 w-4" />
-                Select All
-              </>
-            )}
-          </button>
-        </div>
-
-        <div className="batch-filter-list">
-          {availableBatches.map((batchName) => (
-            <div
-              key={batchName}
-              className={`batch-filter-item ${isAdminMode ? "admin-mode" : ""}`}
-            >
-              <label className="batch-filter-label">
-                <input
-                  type="checkbox"
-                  checked={selectedBatches.includes(batchName)}
-                  onChange={() => handleBatchToggle(batchName)}
-                  className="batch-checkbox"
-                />
-                <div className="batch-checkbox-custom">
-                  {selectedBatches.includes(batchName) && (
-                    <CheckIcon className="h-3 w-3 text-white" />
+      <>
+        <div className="batch-filter-container">
+          <h4 className="batch-filter-title">Batch Filter</h4>
+          {availableBatches.length === 0 ? (
+            <div className="batch-filter-empty">No batches available</div>
+          ) : (
+            <div className="batch-filter-list">
+              {availableBatches.map((batchName) => (
+                <div key={batchName} className="batch-filter-item">
+                  <label className="batch-filter-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={selectedBatches.includes(batchName)}
+                      onChange={() => handleBatchToggle(batchName)}
+                      className="batch-checkbox-input"
+                    />
+                    <span className="batch-checkbox-label">{batchName}</span>
+                  </label>
+                  {isAdminAuthenticated && (
+                    <button
+                      onClick={(e) => handleDeleteClick(batchName, e)}
+                      className="batch-delete-button"
+                      title={`Delete batch: ${batchName}`}
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
                   )}
                 </div>
-                <span className="batch-name" title={batchName}>
-                  {batchName}
-                </span>
-              </label>
-              {isAdminMode && (
-                <button
-                  onClick={() => handleDeleteBatch(batchName)}
-                  disabled={deleting}
-                  className="batch-delete-button"
-                  title={`Delete batch: ${batchName}`}
-                >
-                  <TrashIcon className="h-4 w-4" />
-                </button>
-              )}
+              ))}
             </div>
-          ))}
+          )}
+          {selectedBatches.length > 0 && (
+            <div className="batch-filter-summary">
+              {selectedBatches.length} batch
+              {selectedBatches.length !== 1 ? "es" : ""} selected
+            </div>
+          )}
         </div>
 
-        {availableBatches.length === 0 && (
-          <div className="batch-filter-empty">
-            <span>No data sources available</span>
-            <button onClick={fetchAvailableBatches} className="retry-button">
-              <ArrowPathIcon className="h-4 w-4" />
-              Refresh
-            </button>
-          </div>
-        )}
-
         {/* Batch Deletion Modal */}
-        <BatchDeletionModal
-          isOpen={showDeleteModal}
-          onClose={handleDeleteModalClose}
-          onConfirm={handleDeleteConfirm}
-          batchName={batchToDelete || ""}
-          loading={deleting}
-        />
-      </div>
+        {showDeleteModal && (
+          <BatchDeletionModal
+            batchName={batchToDelete}
+            onConfirm={handleDeleteConfirm}
+            onCancel={handleDeleteModalClose}
+          />
+        )}
+      </>
     );
   }
 );

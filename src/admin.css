@@ -7,7 +7,6 @@
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  margin-top: 60px; /* Add space for the admin toggle */
 }
 
 .admin-chat-header {
@@ -2476,4 +2475,85 @@
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Sidebar-specific Admin Toggle styling */
+.admin-toggle-wrapper {
+  width: 100%;
+  max-width: 250px;
+  position: relative;
+}
+
+.admin-toggle-wrapper .admin-toggle-button {
+  width: 100%;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+  color: #374151;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.admin-toggle-wrapper .admin-toggle-button:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.admin-toggle-wrapper .admin-authenticated {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #065f46;
+}
+
+.admin-toggle-wrapper .admin-authenticated:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+/* Ensure text elements are visible */
+.admin-toggle-wrapper .admin-toggle-text {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.admin-toggle-wrapper .admin-toggle-user {
+  color: inherit;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* Position dropdown relative to sidebar */
+.admin-toggle-wrapper .admin-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  z-index: 1000;
+  min-width: 240px;
+}
+
+/* Admin Status Circle for Active State */
+.admin-status-circle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 2px;
+}
+
+.admin-status-circle.admin-active {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
 }

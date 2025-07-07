@@ -9,18 +9,18 @@ const BatchNamingModal = ({
   loading,
 }) => {
   const [batchName, setBatchName] = useState("");
+  const [useOptimized, setUseOptimized] = useState(true);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (batchName.trim()) {
-      onConfirm({
-        batchName: batchName.trim(),
-      });
+      onConfirm(batchName.trim(), useOptimized);
     }
   };
 
   const handleClose = () => {
     setBatchName("");
+    setUseOptimized(true);
     onClose();
   };
 
@@ -81,6 +81,66 @@ const BatchNamingModal = ({
             </p>
           </div>
 
+          {/* Upload Mode Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Upload Mode
+            </label>
+            <div className="space-y-3">
+              <label className="flex items-start space-x-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="uploadMode"
+                  value="optimized"
+                  checked={useOptimized}
+                  onChange={() => setUseOptimized(true)}
+                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  disabled={loading}
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-900">
+                      🚀 Optimized Upload
+                    </span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                      Recommended
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Parallel processing with up to 8 concurrent LLM calls. Much
+                    faster for large files (3-5x speed improvement).
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex items-start space-x-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="uploadMode"
+                  value="regular"
+                  checked={!useOptimized}
+                  onChange={() => setUseOptimized(false)}
+                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  disabled={loading}
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-900">
+                      ⚡ Regular Upload
+                    </span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                      Legacy
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Sequential processing (one property at a time). More
+                    conservative approach.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
           {/* Actions */}
           <div className="flex gap-3">
             <button
@@ -91,12 +151,14 @@ const BatchNamingModal = ({
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Uploading...
+                  {useOptimized ? "Optimizing..." : "Uploading..."}
                 </>
               ) : (
                 <>
                   <DocumentTextIcon className="h-4 w-4" />
-                  Upload to Database
+                  {useOptimized
+                    ? "🚀 Start Optimized Upload"
+                    : "⚡ Start Regular Upload"}
                 </>
               )}
             </button>
