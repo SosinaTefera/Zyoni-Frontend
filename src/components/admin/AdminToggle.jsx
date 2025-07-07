@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useAdminAuth } from "../../contexts/AdminAuthContext";
 
 const AdminToggle = () => {
@@ -127,8 +128,8 @@ const AdminToggle = () => {
         </div>
       )}
 
-      {/* Login Modal */}
-      {showLoginModal && (
+      {/* Login Modal - Rendered as Portal to center on page */}
+      {showLoginModal && createPortal(
         <div className="admin-modal-overlay" onClick={handleModalClose}>
           <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header">
@@ -203,7 +204,8 @@ const AdminToggle = () => {
               </p>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
