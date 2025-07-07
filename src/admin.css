@@ -7,7 +7,6 @@
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  margin-top: 60px; /* Add space for the admin toggle */
 }
 
 .admin-chat-header {
@@ -2543,4 +2542,18 @@
   margin-top: 8px;
   z-index: 1000;
   min-width: 240px;
+}
+
+/* Admin Status Circle for Active State */
+.admin-status-circle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 2px;
+}
+
+.admin-status-circle.admin-active {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
 }

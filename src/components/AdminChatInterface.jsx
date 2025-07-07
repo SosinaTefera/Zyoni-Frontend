@@ -5,7 +5,6 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   XMarkIcon,
-  ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/solid";
 import ReactMarkdown from "react-markdown";
 import AdminPropertyModal from "./AdminPropertyModal";
@@ -214,14 +213,7 @@ const AdminChatInterface = () => {
     setModalType(null);
   };
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      // The parent component should handle switching back to regular chat
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
+
 
   const formatMessage = (message) => {
     // Add success/error styling to messages
@@ -291,14 +283,6 @@ const AdminChatInterface = () => {
             <span className="admin-user-badge">{user?.id}</span>
             <span className="admin-status-dot admin-status-active"></span>
           </div>
-          <button
-            onClick={handleLogout}
-            className="admin-exit-button"
-            title="Exit Admin Mode"
-          >
-            <ArrowRightOnRectangleIcon className="admin-exit-icon" />
-            <span>Exit</span>
-          </button>
         </div>
       </div>
 

@@ -1,32 +1,98 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   XMarkIcon,
   ExclamationTriangleIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
+import { useProgressTracking } from "../hooks/useProgressTracking";
 
-const BatchDeletionModal = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  batchName,
-  loading,
-}) => {
+const BatchDeletionModal = ({ batchName, onConfirm, onCancel }) => {
   const [apiKey, setApiKey] = useState("");
   const [confirmationText, setConfirmationText] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Progress tracking hook
+  const {
+    progress,
+    isConnected,
+    error: progressError,
+    resetProgress,
+    getLastCompletedOperation,
+  } = useProgressTracking("admin");
+
+  // Monitor for completed deletion operations
+  useEffect(() => {
+    const lastCompleted = getLastCompletedOperation();
+    if (lastCompleted && loading) {
+      console.log("[BATCH_DELETION] Operation completed:", lastCompleted);
+
+      if (lastCompleted.status === "success") {
+        // Success - close modal and refresh parent
+        console.log("[BATCH_DELETION] Deletion successful, closing modal");
+        setLoading(false);
+        onConfirm();
+      } else {
+        // Error - show error message and stop loading
+        console.log("[BATCH_DELETION] Deletion failed:", lastCompleted);
+        setError(
+          lastCompleted.message ||
+            lastCompleted.result?.message ||
+            "Deletion failed"
+        );
+        setLoading(false);
+      }
+    }
+  }, [getLastCompletedOperation(), loading, onConfirm]);
 
   const expectedConfirmation = `delete/${batchName}`;
   const isConfirmationValid = confirmationText === expectedConfirmation;
   const isFormValid = apiKey.trim() && isConfirmationValid;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isFormValid) {
-      onConfirm({
-        apiKey: apiKey.trim(),
-        batchName,
-      });
+    if (!isFormValid) return;
+
+    setLoading(true);
+    setError("");
+    resetProgress(); // Clear any previous progress
+
+    try {
+      const response = await fetch(
+        "http://localhost:8000/api/admin/batch/delete",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            batch_name: batchName,
+            api_key: apiKey.trim(),
+            user_id: "admin", // For progress tracking
+            session_id: `batch_delete_${Date.now()}`, // For progress tracking
+          }),
+        }
+      );
+
+      if (response.ok) {
+        // The deletion is now tracked via WebSocket progress updates
+        // Don't close modal immediately - wait for progress completion
+        console.log(
+          "[BATCH_DELETION] Deletion started, waiting for progress updates..."
+        );
+      } else {
+        const errorData = await response.json();
+        setError(
+          errorData.detail || `Failed to delete batch: ${response.status}`
+        );
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("Error deleting batch:", err);
+      setError("Network error: Failed to connect to server");
+      setLoading(false);
     }
   };
 
@@ -34,12 +100,11 @@ const BatchDeletionModal = ({
     setApiKey("");
     setConfirmationText("");
     setShowApiKey(false);
-    onClose();
+    setError("");
+    onCancel();
   };
 
-  if (!isOpen) return null;
-
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
       <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4">
         {/* Header */}
@@ -162,6 +227,38 @@ const BatchDeletionModal = ({
               )}
             </div>
 
+            {/* Progress Display */}
+            {loading && progress && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div className="mb-2">
+                  <div className="flex justify-between text-sm font-medium text-blue-900">
+                    <span>Deleting batch...</span>
+                    <span>
+                      {Math.round(progress.progress_percentage || 0)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-blue-200 rounded-full h-2 mt-1">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${progress.progress_percentage || 0}%` }}
+                    />
+                  </div>
+                </div>
+                {progress.current_step && (
+                  <p className="text-blue-700 text-sm">
+                    {progress.current_step}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Error Display */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                <p className="text-red-700 text-sm">{error}</p>
+              </div>
+            )}
+
             {/* Actions */}
             <div className="flex gap-3 pt-4">
               <button
@@ -172,7 +269,11 @@ const BatchDeletionModal = ({
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Deleting Batch...
+                    {progress && progress.progress_percentage !== undefined
+                      ? `Deleting... ${Math.round(
+                          progress.progress_percentage
+                        )}%`
+                      : "Deleting Batch..."}
                   </>
                 ) : (
                   <>
@@ -193,7 +294,8 @@ const BatchDeletionModal = ({
           </form>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -56,7 +56,7 @@ function extractPropertyCards(markdown) {
   return cards;
 }
 
-function ChatPanel({ selectedDocument, autoPlay, setAutoPlay }) {
+function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches }) {
   const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
 
   // If admin is authenticated, show admin interface
@@ -214,6 +214,7 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay }) {
         message,
         audio_base64: audioBase64,
         audio_mime_type: mimeType,
+        batch_filter: selectedBatches && selectedBatches.length > 0 ? selectedBatches : null,
       }),
     });
 
