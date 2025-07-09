@@ -458,11 +458,11 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
                 </div>
               )}
               <div
-                className={`max-w-[70%] px-5 py-4 rounded-2xl text-base shadow-xl transition-all duration-300 ${
+                className={`max-w-[70%] px-5 py-4 rounded-2xl text-base shadow-xl transition-all duration-300 transform hover:scale-[1.02] ${
                   message.role === "user"
-                    ? "bg-blue-200/80 text-blue-900 rounded-br-none"
-                    : "bg-purple-200/80 text-purple-900 rounded-bl-none"
-                } animate-fade-in`}
+                    ? "bg-blue-200/80 text-blue-900 rounded-br-none animate-slide-in-right"
+                    : "bg-purple-200/80 text-purple-900 rounded-bl-none animate-slide-in-left"
+                }`}
               >
                 {message.role === "assistant"
                   ? (() => {
@@ -517,17 +517,46 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
                     })()
                   : (
                     <div>
-                      <div>{message.content}</div>
+                      <div className="flex items-start gap-2">
+                        {message.isAudioMessage && (
+                          <div className="flex-shrink-0 mt-1 audio-message-indicator">
+                            <div className="w-4 h-4 bg-blue-100 rounded-full flex items-center justify-center">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex-1">{message.content}</div>
+                      </div>
                       {/* Show language detection info for audio messages */}
                       {message.isAudioMessage && message.languageInfo && (
-                        <div className="mt-2 language-badge">
-                          <span>🎤</span>
-                          <span>Detected: {message.languageInfo.detected}</span>
-                          {message.languageInfo.confidence && (
-                            <span className="ml-1 opacity-90">
-                              ({Math.round(message.languageInfo.confidence * 100)}%)
+                        <div className="mt-3 flex items-center gap-2 language-detection-badge animate-fade-in">
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-green-50 to-blue-50 rounded-full border border-green-200 shadow-sm hover:shadow-md transition-all duration-300 group">
+                            <span className="text-sm font-medium text-gray-700 transform group-hover:scale-110 transition-transform duration-200">
+                              {message.languageInfo.detected === 'es' ? '🇪🇸' : '🇺🇸'}
                             </span>
-                          )}
+                            <span className="text-xs font-semibold text-gray-800">
+                              {message.languageInfo.detected === 'es' ? 'Spanish' : 'English'}
+                            </span>
+                            {message.languageInfo.confidence && (
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-10 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full transition-all duration-500 ease-out"
+                                    style={{ width: `${Math.round(message.languageInfo.confidence * 100)}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs text-gray-600 font-medium">
+                                  {Math.round(message.languageInfo.confidence * 100)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                            <span className="text-xs text-gray-500 font-medium">
+                              Voice detected
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -594,20 +623,20 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
             type="button"
             onClick={handleRecordClick}
             disabled={isLoading}
-            className={`rounded-xl p-2 transition-all duration-300 shadow-lg focus:ring-2 focus:ring-purple-300 recording-button ${
+            className={`rounded-xl p-3 transition-all duration-300 shadow-lg focus:ring-2 focus:ring-purple-300 recording-button ${
               isRecording
-                ? "bg-red-500 text-white recording-indicator"
-                : "bg-blue-500 text-white hover:scale-110"
-            } mr-2 relative`}
+                ? "bg-gradient-to-r from-red-500 to-red-600 text-white animate-pulse-glow"
+                : "bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:scale-110 hover:from-blue-600 hover:to-purple-600"
+            } mr-2 relative group`}
             title={isRecording ? "Stop recording" : "Start voice recording"}
           >
             {isRecording ? (
               <div className="flex items-center gap-2">
                 <StopIcon className="h-6 w-6" />
-                <span className="text-xs font-mono">{formatRecordingTime(recordingTime)}</span>
+                <span className="text-xs font-mono font-bold">{formatRecordingTime(recordingTime)}</span>
               </div>
             ) : (
-              <MicrophoneIcon className="h-6 w-6" />
+              <MicrophoneIcon className="h-6 w-6 group-hover:scale-110 transition-transform duration-200" />
             )}
             {isRecording && (
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-400 rounded-full animate-ping"></div>
