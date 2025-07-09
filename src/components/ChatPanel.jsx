@@ -68,7 +68,7 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
     {
       role: "assistant",
       content:
-        "Hello,\nWelcome to Airz real state assistant, let me know what you are looking for. También puedo hablar en español.",
+        "Hello,\nWelcome to Airz real estate assistant, let me know what you are looking for. También puedo hablar en español.",
     },
   ]);
   const [input, setInput] = useState("");
