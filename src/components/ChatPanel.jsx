@@ -81,6 +81,8 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
   const [retryInfo, setRetryInfo] = useState(null);
   const audioRef = useRef(null);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const recordingIntervalRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -89,6 +91,15 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Cleanup recording interval on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const storedName = localStorage.getItem("guestName") || "";
@@ -255,8 +266,30 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
       mediaRecorder.start();
       mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
+      setRecordingTime(0);
+      
+      // Start recording timer
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => {
+          const newTime = prev + 1;
+          // Auto-stop recording after 60 seconds
+          if (newTime >= 60) {
+            stopRecording();
+            return 0;
+          }
+          return newTime;
+        });
+      }, 1000);
     } catch (err) {
       console.error("Failed to start recording:", err);
+      // Show user-friendly error message
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Sorry, I couldn't access your microphone. Please check your browser permissions and try again.",
+        },
+      ]);
     }
   };
 
@@ -265,6 +298,13 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop());
       setIsRecording(false);
+      setRecordingTime(0);
+      
+      // Clear recording timer
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
     }
   };
 
@@ -291,8 +331,11 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
       const audioBase64 = await blobToBase64(audioBlob);
       const mimeType = getSupportedMimeType() || "audio/webm";
 
-      // 1) Transcribe quickly
+      // 1) Transcribe with language detection
       let transcript = "[Voice message]";
+      let detectedLanguage = "unknown";
+      let languageConfidence = null;
+      
       try {
         const transRes = await fetch("http://localhost:8000/transcribe", {
           method: "POST",
@@ -302,16 +345,52 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
             audio_mime_type: mimeType,
           }),
         });
+        
         if (transRes.ok) {
           const data = await transRes.json();
-          if (data && data.transcript) transcript = data.transcript;
+          if (data && data.transcript) {
+            transcript = data.transcript;
+            // Extract language detection info if available
+            if (data.detected_language) {
+              detectedLanguage = data.detected_language;
+            }
+            if (data.language_confidence) {
+              languageConfidence = data.language_confidence;
+            }
+          }
         }
       } catch (e) {
         console.warn("Transcription failed, falling back to placeholder", e);
       }
 
-      // Show transcript immediately
-      setMessages((prev) => [...prev, { role: "user", content: transcript }]);
+      // Show transcript with language detection info
+      const userMessage = {
+        role: "user", 
+        content: transcript,
+        isAudioMessage: true
+      };
+      
+      // Add language detection info if available
+      if (detectedLanguage !== "unknown") {
+        const languageNames = {
+          "es-ES": "Spanish",
+          "en-US": "English", 
+          "en-GB": "English (UK)",
+          "fr-FR": "French",
+          "de-DE": "German",
+          "it-IT": "Italian",
+          "pt-BR": "Portuguese (Brazil)",
+          "pt-PT": "Portuguese (Portugal)"
+        };
+        
+        const languageName = languageNames[detectedLanguage] || detectedLanguage;
+        userMessage.languageInfo = {
+          detected: languageName,
+          confidence: languageConfidence
+        };
+      }
+      
+      setMessages((prev) => [...prev, userMessage]);
 
       // 2) Send to chat for Assistant response
       const chatData = await sendChatRequest({ message: transcript });
@@ -332,6 +411,12 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const formatRecordingTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleAudioPlayback = (audioBase64) => {
@@ -430,11 +515,27 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
                         </div>
                       );
                     })()
-                  : message.content}
+                  : (
+                    <div>
+                      <div>{message.content}</div>
+                      {/* Show language detection info for audio messages */}
+                      {message.isAudioMessage && message.languageInfo && (
+                        <div className="mt-2 language-badge">
+                          <span>🎤</span>
+                          <span>Detected: {message.languageInfo.detected}</span>
+                          {message.languageInfo.confidence && (
+                            <span className="ml-1 opacity-90">
+                              ({Math.round(message.languageInfo.confidence * 100)}%)
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 {message.audio && (
                   <button
                     onClick={() => handleAudioPlayback(message.audio)}
-                    className={`mt-3 ml-2 px-3 py-1 rounded-full text-white transition-transform duration-300 ease-in-out shadow-lg transform hover:scale-110 ${isAudioPlaying ? 'bg-red-500 hover:bg-red-600 animate-pulse' : 'bg-purple-500 hover:bg-purple-600'}`}
+                    className={`mt-3 ml-2 audio-playback-button ${isAudioPlaying ? 'playing' : ''}`}
                   >
                     {isAudioPlaying ? '⏹️ Stop Audio' : '▶️ Play Audio'}
                   </button>
@@ -493,16 +594,23 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
             type="button"
             onClick={handleRecordClick}
             disabled={isLoading}
-            className={`rounded-xl p-2 transition-all duration-300 shadow-lg focus:ring-2 focus:ring-purple-300 ${
+            className={`rounded-xl p-2 transition-all duration-300 shadow-lg focus:ring-2 focus:ring-purple-300 recording-button ${
               isRecording
-                ? "bg-red-500 text-white"
+                ? "bg-red-500 text-white recording-indicator"
                 : "bg-blue-500 text-white hover:scale-110"
-            } mr-2`}
+            } mr-2 relative`}
+            title={isRecording ? "Stop recording" : "Start voice recording"}
           >
             {isRecording ? (
-              <StopIcon className="h-6 w-6" />
+              <div className="flex items-center gap-2">
+                <StopIcon className="h-6 w-6" />
+                <span className="text-xs font-mono">{formatRecordingTime(recordingTime)}</span>
+              </div>
             ) : (
               <MicrophoneIcon className="h-6 w-6" />
+            )}
+            {isRecording && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-400 rounded-full animate-ping"></div>
             )}
           </button>
           <button

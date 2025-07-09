@@ -84,8 +84,8 @@ const AdminToggle = () => {
         onClick={handleToggleClick}
         className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-bold text-sm shadow-md transition-all duration-200 ${
           isAuthenticated
-            ? "bg-green-500 hover:bg-green-600"
-            : "bg-gray-400 hover:bg-gray-500"
+            ? "bg-purple-500 hover:bg-purple-600"
+            : "bg-purple-400 hover:bg-purple-500"
         }`}
         disabled={loading}
       >
