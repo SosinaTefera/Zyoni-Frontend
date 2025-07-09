@@ -79,6 +79,8 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
   const [retryInfo, setRetryInfo] = useState(null);
+  const audioRef = useRef(null);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -94,19 +96,14 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
   }, []);
 
   useEffect(() => {
-    // Auto-play newly arrived assistant voice messages
     if (!autoPlay) return;
     if (!messages.length) return;
 
     const lastMsg = messages[messages.length - 1];
     if (!lastMsg || !lastMsg.audio) return;
 
-    // Find the most recently rendered <audio> element and attempt to play it.
-    const audioElements = document.querySelectorAll("audio");
-    if (audioElements.length === 0) return;
-    const latestAudio = audioElements[audioElements.length - 1];
-    // Attempt playback; ignore errors (e.g. user gesture policies)
-    latestAudio.play().catch(() => {});
+    // Play the audio automatically if autoPlay is enabled
+    handleAudioPlayback(lastMsg.audio);
   }, [messages, autoPlay]);
 
   const handleSubmit = async (e, retrying = false) => {
@@ -337,6 +334,25 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
     }
   };
 
+  const handleAudioPlayback = (audioBase64) => {
+    if (audioRef.current) {
+      if (!audioRef.current.paused) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        setIsAudioPlaying(false);
+        return;
+      }
+    }
+    audioRef.current = new Audio(`data:audio/wav;base64,${audioBase64}`);
+    audioRef.current.play();
+    setIsAudioPlaying(true);
+    
+    // Listen for when audio ends to update state
+    audioRef.current.onended = () => {
+      setIsAudioPlaying(false);
+    };
+  };
+
   return (
     <main className="w-full flex flex-col h-full bg-gradient-to-br from-blue-100/40 via-purple-100/40 to-white/60 py-4 relative">
       <div className="flex-1 overflow-auto rounded-2xl border border-gray-200 bg-white/60 p-8 mb-4 shadow-2xl backdrop-blur-md backdrop-saturate-150">
@@ -415,6 +431,14 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
                       );
                     })()
                   : message.content}
+                {message.audio && (
+                  <button
+                    onClick={() => handleAudioPlayback(message.audio)}
+                    className={`mt-3 ml-2 px-3 py-1 rounded-full text-white transition-transform duration-300 ease-in-out shadow-lg transform hover:scale-110 ${isAudioPlaying ? 'bg-red-500 hover:bg-red-600 animate-pulse' : 'bg-purple-500 hover:bg-purple-600'}`}
+                  >
+                    {isAudioPlaying ? '⏹️ Stop Audio' : '▶️ Play Audio'}
+                  </button>
+                )}
                 {/* Retry button for failed assistant message */}
                 {message.role === "assistant" &&
                   message.failed &&
