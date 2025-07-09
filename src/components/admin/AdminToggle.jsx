@@ -78,59 +78,66 @@ const AdminToggle = () => {
   };
 
   return (
-    <div className="admin-toggle-container">
+    <div className="relative w-56">
       {/* Admin Toggle Button */}
       <button
         onClick={handleToggleClick}
-        className={`admin-toggle-button ${
-          isAuthenticated ? "admin-authenticated" : "admin-unauthenticated"
+        className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-bold text-sm shadow-md transition-all duration-200 ${
+          isAuthenticated
+            ? "bg-green-500 hover:bg-green-600"
+            : "bg-gray-400 hover:bg-gray-500"
         }`}
         disabled={loading}
       >
         {isAuthenticated ? (
           <>
-            <span className="admin-status-circle admin-active"></span>
-            <span className="admin-toggle-text">Admin Mode: Active</span>
+            <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+            <span>Admin Mode: Active</span>
           </>
         ) : (
           <>
-            <span className="admin-toggle-icon">🔓</span>
-            <span className="admin-toggle-text">Admin Mode</span>
+            <span className="text-lg">🔓</span>
+            <span>Admin Mode</span>
           </>
         )}
-                {loading && <span className="admin-loading-spinner">⏳</span>}
-        </button>
+        {loading && <span className="animate-spin ml-2">⏳</span>}
+      </button>
 
-        {/* Admin Status Dropdown */}
-        {showDropdown && isAuthenticated && (
-          <div className="admin-dropdown">
-            <div className="admin-dropdown-header">
-              <span className="admin-status-indicator admin-active"></span>
-              <span className="admin-status-text">Admin Active</span>
+      {/* Admin Status Dropdown */}
+      {showDropdown && isAuthenticated && (
+        <div className="absolute bottom-full left-0 right-0 mb-2 z-20">
+            <div className="w-full bg-white rounded-xl shadow-2xl border border-gray-200/80 p-4">
+                <div className="flex items-center gap-3 border-b border-gray-200 pb-3 mb-3">
+                    <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                    <span className="font-bold text-base text-gray-800">Admin Active</span>
+                </div>
+                <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">Logged in as:</span>
+                        <span className="font-semibold text-gray-800">{user?.id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">Role:</span>
+                        <span className="font-semibold text-gray-800">{user?.role}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">Session expires:</span>
+                        <span className="font-semibold text-gray-800">
+                        {formatTimeRemaining(timeRemaining)}
+                        </span>
+                    </div>
+                </div>
+                <button
+                    onClick={handleLogout}
+                    className="w-full mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-all duration-200 shadow-md"
+                >
+                    Logout
+                </button>
             </div>
-            <div className="admin-dropdown-content">
-              <div className="admin-info-line">
-                <span className="admin-info-label">Logged in as:</span>
-                <span className="admin-info-value">{user?.id}</span>
-              </div>
-              <div className="admin-info-line">
-                <span className="admin-info-label">Role:</span>
-                <span className="admin-info-value">{user?.role}</span>
-              </div>
-              <div className="admin-info-line">
-                <span className="admin-info-label">Session expires:</span>
-                <span className="admin-info-value">
-                  {formatTimeRemaining(timeRemaining)}
-                </span>
-              </div>
-            </div>
-            <button onClick={handleLogout} className="admin-logout-button">
-              Logout
-            </button>
-          </div>
-        )}
+        </div>
+      )}
 
-        {/* Login Modal - Rendered as Portal to center on page */}
+      {/* Login Modal - Rendered as Portal to center on page */}
       {showLoginModal &&
         createPortal(
           <div className="admin-modal-overlay" onClick={handleModalClose}>

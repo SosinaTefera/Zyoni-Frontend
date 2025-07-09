@@ -472,46 +472,37 @@ function Sidebar({
 
   return (
     <aside
-      className="h-full flex flex-col gap-4 px-2 py-4 bg-gradient-to-b from-blue-100/60 via-purple-100/60 to-white/60 border-r border-gray-200 shadow-xl rounded-r-2xl backdrop-blur-md backdrop-saturate-150 overflow-y-auto"
-      style={{ minWidth: 120, maxWidth: 400 }}
+      className="h-full w-72 flex flex-col items-center gap-4 px-4 py-6 bg-gradient-to-b from-blue-100/60 via-purple-100/60 to-white/60 border-r border-gray-200 shadow-xl rounded-r-2xl backdrop-blur-md backdrop-saturate-150 overflow-y-auto"
     >
-      <div className="flex flex-row items-center justify-center h-24 w-56 mx-auto my-0 rounded-2xl bg-white/60 shadow-lg border-2 border-blue-100 overflow-hidden">
+      <div className="w-56 h-24 flex flex-row items-center justify-center rounded-2xl bg-white/60 shadow-lg border-2 border-blue-100 overflow-hidden px-2">
         <img
           src={logo}
           alt="Company Logo"
-          className="h-full w-1/2 object-contain"
+          className="h-16 w-16 object-contain"
         />
-        <span className="text-2xl font-bold bg-gradient-to-r from-[#0F65C1] to-[#02B3D6] text-transparent bg-clip-text ml-1">
+        <span className="text-3xl font-bold bg-gradient-to-r from-[#0F65C1] to-[#02B3D6] text-transparent bg-clip-text ml-2">
           ZYONIA
         </span>
       </div>
 
-      {/* Auto-play voice replies toggle - only show for regular users */}
+      {/* Auto-play voice replies toggle */}
       {!isAdminAuthenticated && (
-        <div className="flex justify-center mb-3">
-          <label className="flex items-center gap-2 text-sm text-gray-700 bg-white/60 px-3 py-2 rounded-lg border border-blue-200 shadow-sm hover:bg-white/80 transition-all duration-200">
-            <input
-              type="checkbox"
-              checked={autoPlay}
-              onChange={() => setAutoPlay && setAutoPlay(!autoPlay)}
-              className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-400"
-            />
-            <span className="font-medium">Auto-play voice replies</span>
-          </label>
-        </div>
+        <label className="w-56 flex items-center justify-center gap-3 text-sm text-gray-700 bg-white/60 px-3 py-2 rounded-lg border border-blue-200 shadow-sm hover:bg-white/80 transition-all duration-200 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={autoPlay}
+            onChange={() => setAutoPlay && setAutoPlay(!autoPlay)}
+            className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-400"
+          />
+          <span className="font-medium">Auto-play voice replies</span>
+        </label>
       )}
 
-      {/* Admin Toggle */}
-      <div className="flex justify-center mb-3">
-        <div className="admin-toggle-wrapper">
-          <AdminToggle />
-        </div>
-      </div>
-
-      <div className="flex flex-col items-center w-full mb-2">
-        {/* User name input - only show for regular users */}
-        {!isAdminAuthenticated && (
-          <div className="w-full max-w-xs mb-3 flex items-center gap-2">
+      {/* User name input */}
+      {!isAdminAuthenticated && (
+        <div className="w-56">
+          <label className="text-xs font-bold text-gray-500/80 uppercase tracking-wider px-1">Guest</label>
+          <div className="relative mt-1">
             {editingGuest ? (
               <input
                 type="text"
@@ -520,88 +511,70 @@ function Sidebar({
                 onBlur={handleGuestNameBlur}
                 onKeyDown={handleGuestNameKeyDown}
                 autoFocus
-                placeholder="User"
-                className="flex-1 px-4 py-2 rounded-lg border-2 border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base shadow-lg font-bold text-blue-700 bg-white placeholder-blue-300 transition-all duration-200"
+                placeholder="Enter your name"
+                className="w-full px-4 py-2 rounded-lg border-2 border-blue-400 bg-white text-base font-semibold text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
             ) : (
               <button
                 type="button"
                 onClick={handleGuestNameClick}
-                className="flex-1 text-left px-4 py-2 rounded-lg border-2 border-blue-400 bg-white text-base font-bold text-blue-700 shadow-lg cursor-pointer hover:bg-blue-50 hover:border-blue-500 transition-all duration-200"
+                className="group w-full flex justify-between items-center text-left px-4 py-2 rounded-lg border-2 border-gray-300/80 bg-white/70 text-base font-semibold text-gray-800 shadow-sm cursor-pointer hover:bg-white hover:border-blue-400 transition-all duration-200"
                 title="Click to edit your name"
               >
-                {guestName || "User"}
+                <span>{guestName || "User"}</span>
+                <PencilIcon className="w-5 h-5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               </button>
             )}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-5 h-5 text-blue-400 cursor-pointer"
-              onClick={handleGuestNameClick}
-              title="Edit name"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.788l-4 1 1-4 14.362-14.3z"
-              />
-            </svg>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Upload functionality - only show for admin users */}
-        {isAdminAuthenticated && (
-          <label className="block w-full max-w-xs">
-            <input
-              type="file"
-              multiple
-              onChange={handleFileChange}
-              className="hidden"
-              accept=".pdf,.txt,.doc,.docx,.jpg,.jpeg,.png,.js,.py,.java,.cpp,.c,.h,.html,.json,.ts,.tsx,.md,.csv,.css,.xml,.yml,.yaml,.sh,.go,.rs,.php,.rb,.swift,.kt,.scala,.sql"
-            />
-            <button
-              type="button"
-              className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 rounded-lg py-3 text-lg font-semibold shadow hover:bg-gray-100 transition mb-2"
-              onClick={() => document.querySelector("input[type=file]").click()}
-              style={{ minWidth: 80 }}
-            >
-              <ArrowUpTrayIcon className="h-6 w-6 text-gray-500" />
-              Upload
-            </button>
-          </label>
-        )}
-      </div>
-
-      {/* Document management - only show for admin users */}
+      {/* Upload functionality */}
       {isAdminAuthenticated && (
-        <div className="flex-1 flex flex-col gap-2 items-center w-full">
+        <label className="block w-56">
+          <input
+            type="file"
+            multiple
+            onChange={handleFileChange}
+            className="hidden"
+            accept=".pdf,.txt,.doc,.docx,.jpg,.jpeg,.png,.js,.py,.java,.cpp,.c,.h,.html,.json,.ts,.tsx,.md,.csv,.css,.xml,.yml,.yaml,.sh,.go,.rs,.php,.rb,.swift,.kt,.scala,.sql"
+          />
+          <button
+            type="button"
+            className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 rounded-lg py-3 text-lg font-semibold shadow hover:bg-gray-100 transition"
+            onClick={() => document.querySelector("input[type=file]").click()}
+          >
+            <ArrowUpTrayIcon className="h-6 w-6 text-gray-500" />
+            Upload
+          </button>
+        </label>
+      )}
+
+      {/* Document management */}
+      {isAdminAuthenticated && (
+        <div className="flex-1 flex flex-col gap-2 items-center w-full overflow-y-auto">
           {documents.map((doc, idx) => (
             <div
               key={doc.id}
-              className={`flex items-center group w-full max-w-xs`}
+              className={`flex items-center group w-56`}
             >
               {editingId === doc.id ? (
                 <input
-                  className="flex-1 px-3 py-2 rounded-lg border border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base font-medium shadow"
+                  className="w-full px-3 py-2 rounded-lg border border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base font-medium shadow"
                   value={editValue}
                   autoFocus
                   onChange={(e) => setEditValue(e.target.value)}
                   onBlur={() => saveEdit(doc)}
                   onKeyDown={(e) => handleEditKeyDown(e, doc)}
-                  style={{ minWidth: 80 }}
                 />
               ) : (
                 <button
-                  className={`flex-1 flex items-center text-left px-4 py-3 rounded-lg border border-gray-300 bg-white shadow hover:bg-blue-50 transition text-base font-medium truncate ${
+                  className={`w-full flex items-center text-left px-4 py-3 rounded-lg border border-gray-300 bg-white shadow hover:bg-blue-50 transition text-base font-medium truncate ${
                     selectedDocument?.id === doc.id
                       ? "ring-2 ring-blue-500 bg-blue-100"
                       : ""
                   }`}
                   onClick={() => onDocumentSelect(doc)}
-                  style={{ minWidth: 80 }}
                 >
                   {getFileTypeIcon(doc)}
                   <span className="truncate">{doc.name}</span>
@@ -609,14 +582,14 @@ function Sidebar({
               )}
               <button
                 onClick={() => startEditing(doc)}
-                className="ml-2 p-1 text-gray-400 hover:text-blue-500"
+                className="ml-2 p-1 text-gray-400 hover:text-blue-500 shrink-0"
                 title="Rename"
               >
                 <PencilIcon className="h-5 w-5" />
               </button>
               <button
                 onClick={() => removeDocument(doc.id)}
-                className="ml-2 p-1 text-gray-400 hover:text-red-500"
+                className="ml-2 p-1 text-gray-400 hover:text-red-500 shrink-0"
                 title="Remove"
               >
                 <XMarkIcon className="h-5 w-5" />
@@ -624,7 +597,7 @@ function Sidebar({
               {/* Upload to Backend Button */}
               <button
                 onClick={() => handleUploadToBackend(doc)}
-                className="ml-2 p-1 text-gray-400 hover:text-green-600"
+                className="ml-2 p-1 text-gray-400 hover:text-green-600 shrink-0"
                 title="Upload to Backend"
                 disabled={isProcessingUpload}
               >
@@ -647,34 +620,34 @@ function Sidebar({
                 />
               </div>
               <div className="text-center text-xs text-gray-500 mt-1">
-                Uploading... {Math.round(uploadProgress)}%
+                Uploading...
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Batch Filter - only show for admin users */}
-      {isAdminAuthenticated && (
-        <div className="mt-auto pt-4 border-t border-gray-200">
+      {/* Footer Controls */}
+      <div className="w-full flex flex-col items-center gap-4 mt-auto pt-4 border-t border-gray-300/60">
+        {isAdminAuthenticated && (
           <BatchFilter
-            selectedBatches={selectedBatches || []}
+            selectedBatches={selectedBatches}
             onBatchFilterChange={onBatchFilterChange}
-            refreshHandler={batchFilterRefreshHandler}
+            onRefresh={batchFilterRefreshHandler}
           />
+        )}
+        <div className="w-56 flex justify-center">
+          <AdminToggle />
         </div>
-      )}
+      </div>
 
       {/* Batch Naming Modal */}
-      {showBatchNamingModal && currentUploadDoc && (
-        <BatchNamingModal
-          isOpen={showBatchNamingModal}
-          onClose={handleModalClose}
-          fileName={currentUploadDoc.name}
-          onConfirm={handleBatchNameConfirmed}
-          loading={isProcessingUpload}
-        />
-      )}
+      <BatchNamingModal
+        isOpen={showBatchNamingModal}
+        onClose={handleModalClose}
+        onConfirm={handleBatchNameConfirmed}
+        docName={currentUploadDoc?.name}
+      />
     </aside>
   );
 }
