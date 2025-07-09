@@ -654,14 +654,16 @@ function Sidebar({
         </div>
       )}
 
-      {/* Batch Filter - always show at bottom */}
-      <div className="mt-auto pt-4 border-t border-gray-200">
-        <BatchFilter
-          selectedBatches={selectedBatches || []}
-          onBatchFilterChange={onBatchFilterChange}
-          refreshHandler={batchFilterRefreshHandler}
-        />
-      </div>
+      {/* Batch Filter - only show for admin users */}
+      {isAdminAuthenticated && (
+        <div className="mt-auto pt-4 border-t border-gray-200">
+          <BatchFilter
+            selectedBatches={selectedBatches || []}
+            onBatchFilterChange={onBatchFilterChange}
+            refreshHandler={batchFilterRefreshHandler}
+          />
+        </div>
+      )}
 
       {/* Batch Naming Modal */}
       {showBatchNamingModal && currentUploadDoc && (
