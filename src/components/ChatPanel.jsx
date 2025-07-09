@@ -564,9 +564,39 @@ function ChatPanel({ selectedDocument, autoPlay, setAutoPlay, selectedBatches })
                 {message.audio && (
                   <button
                     onClick={() => handleAudioPlayback(message.audio)}
-                    className={`mt-3 ml-2 audio-playback-button ${isAudioPlaying ? 'playing' : ''}`}
+                    className={`mt-3 ml-2 audio-playback-button group relative overflow-hidden ${
+                      isAudioPlaying 
+                        ? 'bg-gradient-to-r from-red-500 to-red-600 text-white animate-audio-pulse shadow-lg' 
+                        : 'bg-gradient-to-r from-green-500 to-blue-500 text-white hover:from-green-600 hover:to-blue-600 hover:scale-105 shadow-md hover:shadow-xl'
+                    } px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 flex items-center gap-2 border-0 focus:ring-2 focus:ring-purple-300 focus:outline-none`}
                   >
-                    {isAudioPlaying ? '⏹️ Stop Audio' : '▶️ Play Audio'}
+                    {isAudioPlaying ? (
+                      <>
+                        <div className="flex items-center gap-2">
+                          {/* Animated sound waves when playing */}
+                          <div className="flex items-center gap-1">
+                            <div className="w-1 h-3 bg-white/80 rounded-full sound-wave"></div>
+                            <div className="w-1 h-4 bg-white rounded-full sound-wave"></div>
+                            <div className="w-1 h-2 bg-white/60 rounded-full sound-wave"></div>
+                          </div>
+                          <span className="font-bold">Stop Audio</span>
+                        </div>
+                        {/* Pulsing ring effect */}
+                        <div className="absolute inset-0 rounded-xl border-2 border-white/30 animate-ping"></div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          {/* Play triangle icon */}
+                          <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                            <div className="w-0 h-0 border-l-[6px] border-l-white border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent ml-0.5"></div>
+                          </div>
+                          <span className="font-bold">Play Audio</span>
+                        </div>
+                        {/* Hover glow effect */}
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-green-400/20 to-blue-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      </>
+                    )}
                   </button>
                 )}
                 {/* Retry button for failed assistant message */}
